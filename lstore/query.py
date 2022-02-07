@@ -41,10 +41,12 @@ class Query:
         if len(columns) != self.table.num_columns:
             return False
         
-        rid = randrange(0, 10000)   #Temporary RID generator. Implement counter soon
-        self.table.index.create_index(self.table.key, columns[self.table.key], rid) # This inserts the an index for the record into the b+tree. 
+        
 
         rid = self.table.num_records
+        
+        # Create Index This inserts the an index for the record into the b+tree. 
+        self.table.index.create_index(self.table.key, columns[self.table.key], rid) 
 
         # metadata
         self.table.page.array[INDIRECTION_COLUMN].append(self.table.page.num_records)
