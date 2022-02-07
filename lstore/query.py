@@ -1,5 +1,6 @@
 from lstore.table import Table, Record
 from lstore.index import Index
+from lstore.page import Page
 
 
 class Query:
@@ -9,7 +10,6 @@ class Query:
     Queries that succeed should return the result or True
     Any query that crashes (due to exceptions) should return False
     """
-
     def __init__(self, table):
         self.table = table
         pass
@@ -20,18 +20,25 @@ class Query:
     # Returns True upon succesful deletion
     # Return False if record doesn't exist or is locked due to 2PL
     """
-
     def delete(self, primary_key):
         pass
+
+
     """
     # Insert a record with specified columns
     # Return True upon succesful insertion
     # Returns False if insert fails for whatever reason
     """
-
     def insert(self, *columns):
         schema_encoding = '0' * self.table.num_columns
-        pass
+        
+        if len(columns) != self.table.num_columns:
+            return False
+
+        for i in range(len(columns)):
+            self.table.page_directory[i].data.append(columns[i])
+
+        
 
     """
     # Read a record with specified key
@@ -42,17 +49,19 @@ class Query:
     # Returns False if record locked by TPL
     # Assume that select will never be called on a key that doesn't exist
     """
-
     def select(self, index_value, index_column, query_columns):
+        # self.table.
         pass
+
+
     """
     # Update a record with specified key and columns
     # Returns True if update is succesful
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
-
     def update(self, primary_key, *columns):
         pass
+
 
     """
     :param start_range: int         # Start of the key range to aggregate 
@@ -62,7 +71,6 @@ class Query:
     # Returns the summation of the given range upon success
     # Returns False if no record exists in the given range
     """
-
     def sum(self, start_range, end_range, aggregate_column_index):
         pass
 
@@ -74,7 +82,6 @@ class Query:
     # Returns True is increment is successful
     # Returns False if no record matches key or if target record is locked by 2PL.
     """
-
     def increment(self, key, column):
         r = self.select(key, self.table.key, [1] * self.table.num_columns)[0]
         if r is not False:
