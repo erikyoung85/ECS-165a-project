@@ -34,6 +34,9 @@ class Query:
         
         if len(columns) != self.table.num_columns:
             return False
+        
+        rid = randrange(0, 10000)   #Temporary RID generator. Implement counter soon
+        self.table.index.create_index(self.table.key, columns[self.table.key], rid) # This inserts the an index for the record into the b+tree. 
 
         for i in range(len(columns)):
             self.table.page_directory[i].data.append(columns[i])
@@ -51,6 +54,7 @@ class Query:
     """
     def select(self, index_value, index_column, query_columns):
         # self.table.
+        self.table.index.locate(index_column, index_value)  # This returns a list with the RID of the given key. 
         pass
 
 
@@ -72,6 +76,7 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum(self, start_range, end_range, aggregate_column_index):
+        #use this function for getting a list of RIDS within the begin and end range: locate_range(self, begin, end, column)
         pass
 
     """
