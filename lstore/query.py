@@ -54,13 +54,19 @@ class Query:
         
         if len(columns) != self.table.num_columns:
             return False
+
+        # check if primary key already exists
+        primary_key = columns[self.table.key]
+        if self.table.index.locate(self.table.key, primary_key)[0]:
+            print(f'Primary key: {primary_key} already exists.')
+            return False
         
         # rid counter
         rid = self.table.rid_counter
         self.table.rid_counter += 1
 
         # This inserts the an index for the record into the b+tree.
-        self.table.index.create_index(self.table.key, columns[self.table.key], rid) 
+        self.table.index.create_index(self.table.key, primary_key, rid) 
 
         # if the base page is full, and the last tail page is full, make another one
         last_page_idx = len(self.table.page.array[0]) - 1
@@ -179,6 +185,10 @@ class Query:
                 schema_encoding = schema_encoding[:i] + "1" + schema_encoding[i+1:]
                 self.table.page.array[col_idx][new_page_idx].append(new_value)
 
+                # update the value in the Index
+                # self.table.index.drop_index(i, current_value)
+                # self.table.index.create_index(i, new_value, rid)
+
         self.table.page.array[RID_COLUMN][new_page_idx].append(rid)
         self.table.page.array[TIMESTAMP_COLUMN][new_page_idx].append(datetime.now().timestamp())
         self.table.page.array[SCHEMA_ENCODING_COLUMN][new_page_idx].append(schema_encoding)
@@ -205,7 +215,6 @@ class Query:
         rids = self.table.index.locate_range(self.table.key, start_range, end_range)
 
         if len(rids) == 0:
-            print("rids empty")
             return False
 
         total_sum = 0
