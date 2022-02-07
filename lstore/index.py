@@ -61,5 +61,7 @@ class Index:
     # optional: Drop index of specific column
     """
 
-    def drop_index(self, column_number):
+    def drop_index(self, column_number, key):
+        RIDtoDelete = self.locate(column_number, key)
+        self.indices.delete(key, [key, RIDtoDelete[0]])
         pass
