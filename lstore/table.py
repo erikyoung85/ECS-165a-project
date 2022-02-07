@@ -31,6 +31,9 @@ class Table:
         self.page = Page()
         self.basepage(name)
 
+        # keep track of total records to create the next rid
+        self.num_records = 0
+
 
 # this function creates one page per column when the table is first created
 # each column creates a list in the page.data array in the Page class
@@ -38,8 +41,8 @@ class Table:
 # each page is just the bytearray(4096)
 
     def basepage(self, name):
-        self.page.pages = SCHEMA_ENCODING_COLUMN + self.num_columns
-        for x in range(0, self.page.pages + 1):
+        self.page.pages = 4 + self.num_columns
+        for x in range(0, self.page.pages):
             self.page.array.append([])
             self.page.array[x].append(self.page.data)
 

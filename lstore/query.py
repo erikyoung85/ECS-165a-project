@@ -1,7 +1,13 @@
+from platform import java_ver
 from lstore.table import Table, Record
 from lstore.index import Index
 from lstore.page import Page
+from datetime import datetime
 
+INDIRECTION_COLUMN = 0
+RID_COLUMN = 1
+TIMESTAMP_COLUMN = 2
+SCHEMA_ENCODING_COLUMN = 3
 
 class Query:
     """
@@ -35,8 +41,26 @@ class Query:
         if len(columns) != self.table.num_columns:
             return False
 
+        rid = self.table.num_records
+
+        # metadata
+        self.table.page.array[INDIRECTION_COLUMN].append(self.table.page.num_records)
+        self.table.page.array[RID_COLUMN].append(rid)
+        self.table.page.array[TIMESTAMP_COLUMN].append(datetime.now().timestamp())
+        self.table.page.array[SCHEMA_ENCODING_COLUMN].append(schema_encoding)
+
+        # user data
         for i in range(len(columns)):
-            self.table.page_directory[i].data.append(columns[i])
+            col_idx = i + 4
+
+            self.table.page.array[col_idx].append(columns[i])
+
+        self.table.page_directory[rid] = self.table.page.num_records
+        self.table.page.num_records += 1
+
+        # if successful
+        self.table.num_records += 1
+        return True
 
         
 
@@ -50,8 +74,23 @@ class Query:
     # Assume that select will never be called on a key that doesn't exist
     """
     def select(self, index_value, index_column, query_columns):
-        # self.table.
-        pass
+        results = []
+        rids = [1, 2, 3]
+
+        for rid in rids:
+            if rid not in self.table.page_directory:
+                continue
+
+            offset = self.table.page_directory[rid]
+            column_values = []
+
+            for i in range(4, self.table.num_columns + 4):
+                column_values.append(self.table.page.array[i][offset])
+
+            record = Record(rid, self.table.key, column_values)
+            results.append(record)
+
+        return 
 
 
     """
@@ -60,6 +99,7 @@ class Query:
     # Returns False if no records exist with given key or if the target record cannot be accessed due to 2PL locking
     """
     def update(self, primary_key, *columns):
+        # create new page, add new record to this page, link new record to original record in base page
         pass
 
 

@@ -13,7 +13,7 @@ class Page:
 # so then it just creates a new page within that columns list
     def has_capacity(self,col):
         if IndexError:
-            self.array.col.apppend(self.data)
+            self.array[col].append(self.data)
 
     def write(self, value):
         self.num_records += 1
