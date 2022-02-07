@@ -42,15 +42,17 @@ class Table:
 
     def basepage(self, name):
         self.page.pages = 4 + self.num_columns
+
         for x in range(0, self.page.pages):
             self.page.array.append([])
-            self.page.array[x].append(self.page.data)
+            self.page.array[x].append([])
 
 # this appends a bytearray(4096) to the list of a specific column.
 # use this when the array you are trying to input infor into gets full
 
     def new_page(self, col):
-        self.page.array[col].append(self.page.data)
+        self.page.array[col].append([])
+        self.page.pages += 1
 
     def __merge(self):
         print("merge is happening")
