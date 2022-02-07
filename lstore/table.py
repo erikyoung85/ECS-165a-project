@@ -31,13 +31,22 @@ class Table:
         self.page = Page()
         self.basepage(name)
 
+
+# this function creates one page per column when the table is first created
+# each column creates a list in the page.data array in the Page class
+# each new page is appended to the corresponding list in page.array
+# each page is just the bytearray(4096)
+
     def basepage(self, name):
-        self.page.pages = self.num_columns
+        self.page.pages = SCHEMA_ENCODING_COLUMN + self.num_columns
         for x in range(0, self.page.pages + 1):
             self.page.array.append([])
             self.page.array[x].append(self.page.data)
 
-    def tailpage(self, col):
+# this appends a bytearray(4096) to the list of a specific column.
+# use this when the array you are trying to input infor into gets full
+
+    def new_page(self, col):
         self.page.array[col].append(self.page.data)
 
     def __merge(self):

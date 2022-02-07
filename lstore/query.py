@@ -35,10 +35,9 @@ class Query:
         if len(columns) != self.table.num_columns:
             return False
 
-        for i in range(self.table.num_columns):
+        for i in range(len(columns)):
             self.table.page_directory[i].data.append(columns[i])
 
-        print(self.table.page_directory[0].has_capacity())
         
 
     """

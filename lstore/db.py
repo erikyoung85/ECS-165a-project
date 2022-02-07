@@ -21,16 +21,18 @@ class Database():
     """
     def create_table(self, name, num_columns, key_index):
         table = Table(name, num_columns, key_index)
+        self.tables.append(name)
         return table
 
     """
     # Deletes the specified table
     """
     def drop_table(self, name):
+        self.tables.pop(name)
         pass
 
     """
     # Returns table with the passed name
     """
     def get_table(self, name):
-        pass
+        return self.name
