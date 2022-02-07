@@ -65,7 +65,7 @@ class bPlusTree:
                 if (key == temp2[i]):
                     current_node = current_node.RID[i + 1]
                     break
-                elif (key < temp2[i]):
+                elif (int(key) < int(temp2[i])):
                     current_node = current_node.RID[i]
                     break
                 elif (i + 1 == len(current_node.key)):
@@ -143,20 +143,26 @@ class bPlusTree:
 
         temp = 0
         for i, item in enumerate(node_.key):
-            if item == key:
+            #print(item)
+            #print(key)
+            #print(" ")
+            if int(item) == int(key):
                 temp = 1
-
+                #print("151")
                 if RID in node_.RID[i]:
                     if len(node_.RID[i]) > 1:
                         node_.RID[i].pop(node_.RID[i].index(RID))
+                        #print("deleted")
                     elif node_ == self.root:
                         node_.key.pop(i)
                         node_.RID.pop(i)
+                        #print("deleted")
                     else:
                         node_.RID[i].pop(node_.RID[i].index(RID))
                         del node_.RID[i]
-                        node_.key.pop(node_.key.index(key))
+                        node_.key.pop(node_.key.index(str(key)))
                         self.deleteEntry(node_, key, RID)
+                        #print("deleted")
                 else:
                     print("key not in RID")
                     return
@@ -166,7 +172,7 @@ class bPlusTree:
 
     # Delete an entry
     def deleteEntry(self, node_, key, RID):
-
+        
         if not node_.leaf_checker:
             for i, item in enumerate(node_.RID):
                 if item == RID:
@@ -224,7 +230,7 @@ class bPlusTree:
                 if not node_.leaf_checker:
                     ndash.key.append(key_)
                 else:
-                    ndash.nextKey = node_.nextKey
+                    ndash.nextRID = node_.nextRID
                 ndash.key += node_.key
 
                 if not ndash.leaf_checker:

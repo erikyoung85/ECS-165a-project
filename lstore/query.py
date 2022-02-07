@@ -28,6 +28,8 @@ class Query:
     """
     def delete(self, primary_key):
         # rid = self.table.index.
+        #Deleting Index...work in progress
+        #self.table.index.drop_index(self.table.key, primary_key) 
         pass
 
 
