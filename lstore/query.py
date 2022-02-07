@@ -41,10 +41,12 @@ class Query:
         if len(columns) != self.table.num_columns:
             return False
         
-        rid = randrange(0, 10000)   #Temporary RID generator. Implement counter soon
-        self.table.index.create_index(self.table.key, columns[self.table.key], rid) # This inserts the an index for the record into the b+tree. 
+        # rid counter
+        rid = self.table.rid_counter
+        self.table.rid_counter += 1
 
-        rid = self.table.num_records
+        # This inserts the an index for the record into the b+tree.
+        self.table.index.create_index(self.table.key, columns[self.table.key], rid) 
 
         # metadata
         self.table.page.array[INDIRECTION_COLUMN].append(self.table.page.num_records)
@@ -58,11 +60,11 @@ class Query:
 
             self.table.page.array[col_idx].append(columns[i])
 
-        self.table.page_directory[rid] = self.table.page.num_records
+        # update page_directory and increment record counters
+        self.table.page_directory[rid] = self.table.page.num_records + 1
         self.table.page.num_records += 1
 
         # if successful
-        self.table.num_records += 1
         return True
 
         
@@ -78,25 +80,27 @@ class Query:
     """
     def select(self, index_value, index_column, query_columns):
         results = []
-        rids = [1, 2, 3]
+
+        # index.locate(column, value)
+        rids = self.table.index.locate(index_column, index_value)
 
         for rid in rids:
+            # make sure rid exists in the table
             if rid not in self.table.page_directory:
                 continue
 
             offset = self.table.page_directory[rid]
             column_values = []
 
-            for i in range(4, self.table.num_columns + 4):
-                column_values.append(self.table.page.array[i][offset])
+            # get values of each column if it is in the query_columns
+            for i in range(self.table.num_columns):
+                if query_columns[i - 4]:
+                    column_values.append(self.table.page.array[i + 4][offset])
 
             record = Record(rid, self.table.key, column_values)
             results.append(record)
 
-        return 
-        # self.table.
-        self.table.index.locate(index_column, index_value)  # This returns a list with the RID of the given key. 
-        pass
+        return results
 
 
     """
@@ -119,7 +123,17 @@ class Query:
     """
     def sum(self, start_range, end_range, aggregate_column_index):
         #use this function for getting a list of RIDS within the begin and end range: locate_range(self, begin, end, column)
-        pass
+        rids = self.table.index.locate_range(start_range, end_range, aggregate_column_index)
+
+        if len(rids) == 0:
+            return False
+
+        total_sum = 0
+        for rid in rids:
+            offset = self.table.page_directory[rid]
+            total_sum += self.table.page.array[aggregate_column_index][offset]
+
+        return total_sum
 
     """
     incremenets one column of the record

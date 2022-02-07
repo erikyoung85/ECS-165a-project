@@ -32,7 +32,7 @@ class Table:
         self.basepage(name)
 
         # keep track of total records to create the next rid
-        self.num_records = 0
+        self.rid_counter = 0
 
 
 # this function creates one page per column when the table is first created

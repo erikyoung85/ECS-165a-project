@@ -49,8 +49,8 @@ class Index:
     # Creates an index for the B+Tree and the list for indicesRange
     """
 
-    def create_index(self, column_number):
-        def create_index(self, column_number, key, RID):    # (self, column_number):
+    # def create_index(self, column_number):
+    def create_index(self, column_number, key, RID):    # (self, column_number):
         #print(key)
         #print(RID)
         self.indicesRange.append((column_number, key, RID))
