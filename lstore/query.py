@@ -27,6 +27,7 @@ class Query:
     # Return False if record doesn't exist or is locked due to 2PL
     """
     def delete(self, primary_key):
+        self.table.index.drop_index(self.table.key, primary_key) 
         pass
 
 
