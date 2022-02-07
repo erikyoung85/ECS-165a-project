@@ -27,11 +27,20 @@ class Query:
     # Return False if record doesn't exist or is locked due to 2PL
     """
     def delete(self, primary_key):
-        # rid = self.table.index.
         #Deleting Index...work in progress
         #self.table.index.drop_index(self.table.key, primary_key) 
-        pass
+        rids = self.table.index.drop_index(self.table.key, primary_key)
 
+        for rid in rids:
+            # if record doesnt exist
+            if rid not in self.table.page_directory:
+                return False
+            
+            (base_page_idx, base_offset) = self.table.page_directory[rid]
+
+            # mark record as deleted
+            self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset] = "-1"
+        
 
     """
     # Insert a record with specified columns
@@ -98,14 +107,19 @@ class Query:
             (page_idx, offset) = self.table.page_directory[rid]
             column_values = []
 
+            # make sure record hasnt been deleted
+            if self.table.page.array[SCHEMA_ENCODING_COLUMN][page_idx][offset] == "-1":
+                continue
+
             # get latest version
             (page_idx_latest, offset_latest) = self.table.page.array[INDIRECTION_COLUMN][page_idx][offset]
 
             # get values of each column if it is in the query_columns
             for i in range(self.table.num_columns):
-                if query_columns[i - 4]:
+                col_idx = i + 4
+                if query_columns[i]:
                     # get indirection value
-                    column_values.append(self.table.page.array[i + 4][page_idx_latest][offset_latest])
+                    column_values.append(self.table.page.array[col_idx][page_idx_latest][offset_latest])
 
             record = Record(rid, self.table.key, column_values)
             results.append(record)
@@ -171,16 +185,23 @@ class Query:
     # Returns False if no record exists in the given range
     """
     def sum(self, start_range, end_range, aggregate_column_index):
-        #use this function for getting a list of RIDS within the begin and end range: locate_range(self, begin, end, column)
-        rids = self.table.index.locate_range(start_range, end_range, aggregate_column_index)
+        #use this function for getting a list of RIDS within the begin and end range: locate_range(self, column, begin, end)
+        rids = self.table.index.locate_range(self.table.key, start_range, end_range)
 
         if len(rids) == 0:
+            print("rids empty")
             return False
 
         total_sum = 0
         for rid in rids:
-            offset = self.table.page_directory[rid]
-            total_sum += self.table.page.array[aggregate_column_index][offset]
+            (base_page_idx, base_offset) = self.table.page_directory[rid]
+            # make sure record hasnt been deleted
+            if self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset] == "-1":
+                continue
+
+            # get latest version
+            (latest_page_idx, latest_offset) = self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset]
+            total_sum += self.table.page.array[aggregate_column_index + 4][latest_page_idx][latest_offset]
 
         return total_sum
 

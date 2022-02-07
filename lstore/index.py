@@ -36,13 +36,12 @@ class Index:
     # Returns the RIDs of all records with values in column "column" between "begin" and "end"
     """
 
-    def locate_range(self, begin, end, column):
+    def locate_range(self, column, begin, end):
         RIDs = []
         for i in range(len(self.indicesRange)): 
-            if column == self.indicesRange[i][0] and begin >= self.indicesRange[i][1] and end <= self.indicesRange[i][1]:
-                RIDs.append(self.indices[i][2])
+            if column == self.indicesRange[i][0] and self.indicesRange[i][1] >= begin and self.indicesRange[i][1] <= end:
+                RIDs.append(self.indicesRange[i][2])
         return RIDs
-        #pass
 
     """
     # optional: Create index on specific column
@@ -64,4 +63,4 @@ class Index:
     def drop_index(self, column_number, key):
         RIDtoDelete = self.locate(column_number, key)
         self.indices.delete(key, [key, RIDtoDelete[0]])
-        pass
+        return RIDtoDelete
