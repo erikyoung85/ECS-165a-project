@@ -40,6 +40,8 @@ class Query:
 
             # mark record as deleted
             self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset] = "-1"
+
+            self.table.page.num_records -= 1
         
 
     """
@@ -60,24 +62,34 @@ class Query:
         # This inserts the an index for the record into the b+tree.
         self.table.index.create_index(self.table.key, columns[self.table.key], rid) 
 
-        # metadata
-        self.table.page.array[RID_COLUMN][0].append(rid)
-        self.table.page.array[TIMESTAMP_COLUMN][0].append(datetime.now().timestamp())
-        self.table.page.array[SCHEMA_ENCODING_COLUMN][0].append(schema_encoding)
+        # if the base page is full, and the last tail page is full, make another one
+        last_page_idx = len(self.table.page.array[0]) - 1
+        use_page_idx = 0    # initially use the base page, if it is full then switch to last tail page
+        if not self.table.page.has_capacity(page_idx=0):
+            use_page_idx = last_page_idx
+            if not self.table.page.has_capacity(page_idx=last_page_idx):
+                self.table.new_pages()
+                use_page_idx += 1
 
         # user data
         for i in range(len(columns)):
             col_idx = i + 4
 
             # temporary if statement for testing
-            self.table.page.array[col_idx][0].append(columns[i])
+            self.table.page.array[col_idx][use_page_idx].append(columns[i])
 
         # update page_directory and indirection column
-        self.table.page_directory[rid] = (0, self.table.page.num_records)
-        indirection_value = (0, self.table.page.num_records)
+        offset = len(self.table.page.array[col_idx][use_page_idx]) - 1
+
+        self.table.page_directory[rid] = (use_page_idx, offset)
+        indirection_value = (use_page_idx, offset)
         self.table.page.num_records += 1
 
-        self.table.page.array[INDIRECTION_COLUMN][0].append(indirection_value)
+        # metadata
+        self.table.page.array[RID_COLUMN][use_page_idx].append(rid)
+        self.table.page.array[TIMESTAMP_COLUMN][use_page_idx].append(datetime.now().timestamp())
+        self.table.page.array[SCHEMA_ENCODING_COLUMN][use_page_idx].append(schema_encoding)
+        self.table.page.array[INDIRECTION_COLUMN][use_page_idx].append(indirection_value)
         # if successful
         return True
 
@@ -143,10 +155,10 @@ class Query:
 
         schema_encoding = "0" * self.table.num_columns
 
-        # if there are no tail pages, make one
-        if len(self.table.page.array[0]) == 1:
-            for i in range(self.table.num_columns + 4):
-                self.table.new_page(i)
+        # if there are no tail pages, or if the current tail page is full, make another one
+        last_page_idx = len(self.table.page.array[0]) - 1
+        if len(self.table.page.array[0]) == 1 or not self.table.page.has_capacity(page_idx=last_page_idx):
+            self.table.new_pages()
         
         for i in range(len(columns)):
 
@@ -174,6 +186,10 @@ class Query:
 
         # set indirection column values for base page
         self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset] = (new_page_idx, new_offset)
+
+        self.table.page.num_records += 1
+
+        return True
 
 
     """
