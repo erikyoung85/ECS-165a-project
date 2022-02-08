@@ -72,4 +72,8 @@ class Index:
         #print(RIDtoDelete)
         #self.indices.delete(str(key), [str(key), RIDtoDelete[0]])
         self.indices.reserveRID(str(key))
+        for i in range(len(self.indicesRange)): 
+            if key == self.indicesRange[i][1] and column_number == self.indicesRange[i][0]:
+                self.indicesRange[i][2] = -1
+                break
         return RIDtoDelete
