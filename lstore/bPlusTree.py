@@ -89,6 +89,34 @@ class bPlusTree:
                     current_node = current_node.RID[i + 1]
                     break
         return current_node.RID
+
+    def searchRange(self, start, end):
+        current_node = self.search(str(start))
+
+        keys = []
+        resultRIDs = []
+        while True:
+            for [[key, rid]] in current_node.RID:
+                # -1 means record is deleted
+                if rid == -1 or int(key) < start:
+                    continue
+                
+                # if key is larger than end, we have all the RIDs in the range
+                if int(key) > end:
+                    return resultRIDs
+
+                resultRIDs.append(rid)
+                keys.append(int(key))
+
+            # if there is no sibling node, we have hit the max node, we can return
+            if not current_node.nextRID:
+                return resultRIDs
+            
+            # go to next node sibling
+            current_node = current_node.nextRID
+
+                
+
     
     def reserveRID(self, key):
         current_node = self.search(key)
