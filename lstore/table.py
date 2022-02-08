@@ -41,20 +41,27 @@ class Table:
 # each page is just the bytearray(4096)
 
     def basepage(self, name):
-        self.page.pages = 1
-
+        # create list for each column to hold base and tail pages
         for x in range(0, self.num_columns + 4):
             self.page.array.append([])
-            self.page.array[x].append([])
+        
+        # make initial base pages for each column
+        self.new_pages()
 
 # this appends a bytearray(4096) to the list of a specific column.
 # use this when the array you are trying to input infor into gets full
 
     def new_pages(self):
-        for i in range(self.num_columns + 4):
-            self.page.array[i].append([])
+        # uncompressed pages
+        for i in range(0, 4):
+            self.page.array[i].append([None] * int(self.page.capacity / self.page.data_size))  # list of size equal to bytearray 
+
+        # compressed pages
+        for i in range(4, self.num_columns + 4):
+            self.page.array[i].append(bytearray(4096))
 
         self.page.pages += 1
+        self.page.page_to_num_records.append(0)
 
 
     def __merge(self):
