@@ -65,7 +65,7 @@ class bPlusTree:
                 if (key == temp2[i]):
                     current_node = current_node.RID[i + 1]
                     break
-                elif (int(key) < int(temp2[i])):
+                elif ((key) < (temp2[i])):
                     current_node = current_node.RID[i]
                     break
                 elif (i + 1 == len(current_node.key)):
@@ -82,7 +82,7 @@ class bPlusTree:
                 if (key == temp2[i]):
                     current_node = current_node.RID[i + 1]
                     break
-                elif (key < int(temp2[i])):
+                elif (key < (temp2[i])):
                     current_node = current_node.RID[i]
                     break
                 elif (i + 1 == len(current_node.key)):
@@ -146,7 +146,7 @@ class bPlusTree:
             #print(item)
             #print(key)
             #print(" ")
-            if int(item) == int(key):
+            if item == key:
                 temp = 1
                 #print("151")
                 if RID in node_.RID[i]:
@@ -189,14 +189,20 @@ class bPlusTree:
             del node_
             return
         elif (len(node_.RID) < int(math.ceil(node_.order / 2)) and node_.leaf_checker == False) or (len(node_.key) < int(math.ceil((node_.order - 1) / 2)) and node_.leaf_checker == True):
-
+            #print("Here")
+            print(node_.key)
             is_predecessor = 0
             parentNode = node_.parent
             PrevNode = -1
             NextNode = -1
             PrevK = -1
             PostK = -1
+            #print(node_.parent)
+            #if parentNode != None:
             for i, item in enumerate(parentNode.RID):
+                    #print("oof")
+                    #print(type(item))
+                    #print(type(node_))
 
                 if item == node_:
                     if i > 0:
