@@ -38,13 +38,13 @@ class Index:
     # Returns the RIDs of all records with values in column "column" between "begin" and "end"
     """
 
-    def locate_range(self, begin, end, column):
-        RIDs = []
-        for i in range(len(self.indicesRange)): 
-            if column == self.indicesRange[i][0] and begin >= self.indicesRange[i][1] and end <= self.indicesRange[i][1]:
-                RIDs.append(self.indices[i][2])
-        return RIDs
-        #pass
+    def locate_range(self, column, begin, end):
+        # RIDs = []
+        # for i in range(len(self.indicesRange)): 
+        #     if column == self.indicesRange[i][0] and begin >= self.indicesRange[i][1] and end <= self.indicesRange[i][1]:
+        #         RIDs.append(self.indices[i][2])
+        # return RIDs
+        return self.indices.searchRange(begin, end)
 
     """
     # optional: Create index on specific column
@@ -57,7 +57,7 @@ class Index:
     def create_index(self, column_number, key, RID):    # (self, column_number):
         #print(key)
         #print(RID)
-        self.indicesRange.append([column_number, key, RID])
+        # self.indicesRange.append([column_number, key, RID])
         self.indices.insert(str(key), [str(key), RID])
         pass
 
@@ -72,8 +72,8 @@ class Index:
         #print(RIDtoDelete)
         #self.indices.delete(str(key), [str(key), RIDtoDelete[0]])
         self.indices.reserveRID(str(key))
-        for i in range(len(self.indicesRange)): 
-            if key == self.indicesRange[i][1] and column_number == self.indicesRange[i][0]:
-                self.indicesRange[i][2] = -1
-                break
+        # for i in range(len(self.indicesRange)): 
+        #     if key == self.indicesRange[i][1] and column_number == self.indicesRange[i][0]:
+        #         self.indicesRange[i][2] = -1
+        #         break
         return RIDtoDelete
