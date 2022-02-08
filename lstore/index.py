@@ -70,5 +70,6 @@ class Index:
         RIDtoDelete = self.locate(column_number, str(key))
         #print(key)
         #print(RIDtoDelete)
-        self.indices.delete(str(key), [str(key), RIDtoDelete[0]])
+        #self.indices.delete(str(key), [str(key), RIDtoDelete[0]])
+        self.indices.reserveRID(str(key))
         return RIDtoDelete
