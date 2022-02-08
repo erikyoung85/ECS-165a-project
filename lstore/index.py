@@ -57,7 +57,7 @@ class Index:
     def create_index(self, column_number, key, RID):    # (self, column_number):
         #print(key)
         #print(RID)
-        self.indicesRange.append((column_number, key, RID))
+        self.indicesRange.append([column_number, key, RID])
         self.indices.insert(str(key), [str(key), RID])
         pass
 
