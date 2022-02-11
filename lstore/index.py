@@ -32,18 +32,12 @@ class Index:
         #print(value)
         #print(RIDs[0])
         return RIDs
-        #pass
 
     """
     # Returns the RIDs of all records with values in column "column" between "begin" and "end"
     """
 
     def locate_range(self, column, begin, end):
-        # RIDs = []
-        # for i in range(len(self.indicesRange)): 
-        #     if column == self.indicesRange[i][0] and begin >= self.indicesRange[i][1] and end <= self.indicesRange[i][1]:
-        #         RIDs.append(self.indices[i][2])
-        # return RIDs
         return self.indices.searchRange(begin, end)
 
     """
@@ -51,15 +45,9 @@ class Index:
     # Creates an index for the B+Tree and the list for indicesRange
     """
 
-    #def sortKeyValue(e):
-    #    return e[1]
 
-    def create_index(self, column_number, key, RID):    # (self, column_number):
-        #print(key)
-        #print(RID)
-        # self.indicesRange.append([column_number, key, RID])
+    def create_index(self, column_number, key, RID):
         self.indices.insert(str(key), [str(key), RID])
-        pass
 
     """
     # optional: Drop index of specific column
@@ -68,12 +56,5 @@ class Index:
     #Deletes index from B+Tree
     def drop_index(self, column_number, key):
         RIDtoDelete = self.locate(column_number, str(key))
-        #print(key)
-        #print(RIDtoDelete)
-        #self.indices.delete(str(key), [str(key), RIDtoDelete[0]])
         self.indices.reserveRID(str(key))
-        # for i in range(len(self.indicesRange)): 
-        #     if key == self.indicesRange[i][1] and column_number == self.indicesRange[i][0]:
-        #         self.indicesRange[i][2] = -1
-        #         break
         return RIDtoDelete

@@ -38,10 +38,13 @@ class Query:
             
             (base_page_idx, base_offset) = self.table.page_directory[rid]
 
-            # mark record as deleted
-            self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset] = "-1"
+            # if record has already been deleted
+            if self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8].decode('utf-8') == "-1":
+                continue
 
-            self.table.page.num_records -= 1
+            # mark record as deleted
+            self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8] = bytes("-1", 'utf-8')
+            self.table.page.page_to_num_records[base_page_idx] -= 1
         
 
     """
@@ -81,21 +84,27 @@ class Query:
         for i in range(len(columns)):
             col_idx = i + 4
 
-            # temporary if statement for testing
-            self.table.page.array[col_idx][use_page_idx].append(columns[i])
+            # get offset index
+            byte_offset = self.table.page.page_to_num_records[use_page_idx] * self.table.page.data_size
+            data_size = self.table.page.data_size
 
-        # update page_directory and indirection column
-        offset = len(self.table.page.array[col_idx][use_page_idx]) - 1
+            # set data
+            self.table.page.array[col_idx][use_page_idx][byte_offset : byte_offset + 8] = columns[i].to_bytes(8, 'big')
 
-        self.table.page_directory[rid] = (use_page_idx, offset)
-        indirection_value = (use_page_idx, offset)
-        self.table.page.num_records += 1
+        
+        self.table.page_directory[rid] = (use_page_idx, byte_offset)
+        indirection_value = (use_page_idx, byte_offset)
+        self.table.page.page_to_num_records[use_page_idx] += 1
 
         # metadata
-        self.table.page.array[RID_COLUMN][use_page_idx].append(rid)
-        self.table.page.array[TIMESTAMP_COLUMN][use_page_idx].append(datetime.now().timestamp())
-        self.table.page.array[SCHEMA_ENCODING_COLUMN][use_page_idx].append(schema_encoding)
-        self.table.page.array[INDIRECTION_COLUMN][use_page_idx].append(indirection_value)
+        self.table.page.array[RID_COLUMN][use_page_idx][byte_offset : byte_offset + 8] = rid.to_bytes(8, 'big')
+        self.table.page.array[TIMESTAMP_COLUMN][use_page_idx][byte_offset : byte_offset + 8] = int(datetime.now().timestamp()).to_bytes(8, 'big')
+        self.table.page.array[SCHEMA_ENCODING_COLUMN][use_page_idx][byte_offset : byte_offset + 8] = bytes(schema_encoding, 'utf-8')
+
+        # indirection column stores two integers back to back
+        self.table.page.array[INDIRECTION_COLUMN][use_page_idx][byte_offset : byte_offset + 4] = indirection_value[0].to_bytes(4, 'big')
+        self.table.page.array[INDIRECTION_COLUMN][use_page_idx][byte_offset + 4 : byte_offset + 8] = indirection_value[1].to_bytes(4, 'big')
+
         # if successful
         return True
 
@@ -126,18 +135,20 @@ class Query:
             column_values = []
 
             # make sure record hasnt been deleted
-            if self.table.page.array[SCHEMA_ENCODING_COLUMN][page_idx][offset] == "-1":
+            if self.table.page.array[SCHEMA_ENCODING_COLUMN][page_idx][offset : offset + 8].decode('utf-8') == "-1":
                 continue
 
             # get latest version
-            (page_idx_latest, offset_latest) = self.table.page.array[INDIRECTION_COLUMN][page_idx][offset]
+            page_idx_latest = int.from_bytes(self.table.page.array[INDIRECTION_COLUMN][page_idx][offset : offset + 4], 'big')
+            byte_offset_latest = int.from_bytes(self.table.page.array[INDIRECTION_COLUMN][page_idx][offset + 4 : offset + 8], 'big')
 
             # get values of each column if it is in the query_columns
             for i in range(self.table.num_columns):
                 col_idx = i + 4
                 if query_columns[i]:
                     # get indirection value
-                    column_values.append(self.table.page.array[col_idx][page_idx_latest][offset_latest])
+                    value_bytes = self.table.page.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
+                    column_values.append(int.from_bytes(value_bytes, 'big'))
 
             record = Record(rid, self.table.key, column_values)
             results.append(record)
@@ -157,7 +168,8 @@ class Query:
         # get base record
         (base_page_idx, base_offset) = self.table.page_directory[rid]
         # get current latest version of record
-        (current_page_idx, current_offset) = self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset]
+        current_page_idx = int.from_bytes(self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
+        current_byte_offset = int.from_bytes(self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8], 'big')
 
         schema_encoding = "0" * self.table.num_columns
 
@@ -172,32 +184,32 @@ class Query:
             col_page_array = self.table.page.array[col_idx]
 
             new_page_idx = len(col_page_array) - 1
-            new_offset = len(col_page_array[new_page_idx])
+            new_byte_offset = self.table.page.page_to_num_records[new_page_idx] * self.table.page.data_size
 
-            current_value = self.table.page.array[col_idx][current_page_idx][current_offset]
+            current_value = int.from_bytes(self.table.page.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8], 'big')
             new_value = columns[i]
 
             if columns[i] == None:
                 # if column is keeping its current value
-                self.table.page.array[col_idx][new_page_idx].append(current_value)
+                self.table.page.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = current_value.to_bytes(8, 'big')
             else:
                 # if column has a new value
                 schema_encoding = schema_encoding[:i] + "1" + schema_encoding[i+1:]
-                self.table.page.array[col_idx][new_page_idx].append(new_value)
+                self.table.page.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = new_value.to_bytes(8, 'big')
 
-                # update the value in the Index
-                # self.table.index.drop_index(i, current_value)
-                # self.table.index.create_index(i, new_value, rid)
+        # set metadata
+        self.table.page.array[RID_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = rid.to_bytes(8, 'big')
+        self.table.page.array[TIMESTAMP_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = int(datetime.now().timestamp()).to_bytes(8, 'big')
+        self.table.page.array[SCHEMA_ENCODING_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = bytes(schema_encoding, 'utf-8')
 
-        self.table.page.array[RID_COLUMN][new_page_idx].append(rid)
-        self.table.page.array[TIMESTAMP_COLUMN][new_page_idx].append(datetime.now().timestamp())
-        self.table.page.array[SCHEMA_ENCODING_COLUMN][new_page_idx].append(schema_encoding)
-        self.table.page.array[INDIRECTION_COLUMN][new_page_idx].append((current_page_idx, current_offset))
+        self.table.page.array[INDIRECTION_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 4] = current_page_idx.to_bytes(4, 'big')
+        self.table.page.array[INDIRECTION_COLUMN][new_page_idx][new_byte_offset + 4 : new_byte_offset + 8] = current_byte_offset.to_bytes(4, 'big')
 
         # set indirection column values for base page
-        self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset] = (new_page_idx, new_offset)
+        self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4] = new_page_idx.to_bytes(4, 'big')
+        self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8] = new_byte_offset.to_bytes(4, 'big')
 
-        self.table.page.num_records += 1
+        self.table.page.page_to_num_records[new_page_idx] += 1
 
         return True
 
@@ -221,12 +233,15 @@ class Query:
         for rid in rids:
             (base_page_idx, base_offset) = self.table.page_directory[rid]
             # make sure record hasnt been deleted
-            if self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset] == "-1":
+            if self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8].decode('utf-8') == "-1":
                 continue
 
             # get latest version
-            (latest_page_idx, latest_offset) = self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset]
-            total_sum += self.table.page.array[aggregate_column_index + 4][latest_page_idx][latest_offset]
+            latest_page_idx = int.from_bytes(self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
+            byte_latest_offset = int.from_bytes(self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8], 'big')
+
+            value_bytes = self.table.page.array[aggregate_column_index + 4][latest_page_idx][byte_latest_offset : byte_latest_offset + 8]
+            total_sum += int.from_bytes(value_bytes, 'big')
 
         return total_sum
 
