@@ -7,7 +7,8 @@ class Page:
     def __init__(self):
         self.capacity = 4096    # in bytes
         self.page_to_num_records = [0]
-        self.data = bytearray(self.capacity)
+        self.base_page_idxs = []
+        self.tail_page_idxs = []
         self.data_size = 8      # offset per element in bytearray
         self.array = []
         self.pages = 0
@@ -20,10 +21,3 @@ class Page:
             return True
         
         return False
-
-    def write(self, value):
-        self.num_records += 1
-
-
-
-
