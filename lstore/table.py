@@ -46,17 +46,22 @@ class Table:
             self.page.array.append([])
         
         # make initial base pages for each column
-        self.new_pages()
+        self.new_pages(base_page=True)
 
 # this appends a bytearray(4096) to the list of a specific column.
 # use this when the array you are trying to input infor into gets full
 
-    def new_pages(self):
+    def new_pages(self, base_page: bool):
         for i in range(self.num_columns + 4):
             self.page.array[i].append(bytearray(4096))
 
         self.page.pages += 1
         self.page.page_to_num_records.append(0)
+
+        if base_page:
+            self.page.base_page_idxs.append(self.page.pages - 1)
+        else:
+            self.page.tail_page_idxs.append(self.page.pages - 1)
 
 
     def __merge(self):

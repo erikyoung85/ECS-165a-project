@@ -71,14 +71,11 @@ class Query:
         # This inserts the an index for the record into the b+tree.
         self.table.index.create_index(self.table.key, primary_key, rid) 
 
-        # if the base page is full, and the last tail page is full, make another one
-        last_page_idx = len(self.table.page.array[0]) - 1
-        use_page_idx = 0    # initially use the base page, if it is full then switch to last tail page
-        if not self.table.page.has_capacity(page_idx=0):
-            use_page_idx = last_page_idx
-            if not self.table.page.has_capacity(page_idx=last_page_idx):
-                self.table.new_pages()
-                use_page_idx += 1
+        # if the last base page is full, make another one
+        use_page_idx = self.table.page.base_page_idxs[-1]
+        if not self.table.page.has_capacity(use_page_idx):
+            self.table.new_pages(base_page=True)
+            use_page_idx = self.table.page.base_page_idxs[-1]
 
         # user data
         for i in range(len(columns)):
@@ -149,6 +146,8 @@ class Query:
                     # get indirection value
                     value_bytes = self.table.page.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
                     column_values.append(int.from_bytes(value_bytes, 'big'))
+                else:
+                    column_values.append(None)
 
             record = Record(rid, self.table.key, column_values)
             results.append(record)
@@ -174,16 +173,17 @@ class Query:
         schema_encoding = "0" * self.table.num_columns
 
         # if there are no tail pages, or if the current tail page is full, make another one
-        last_page_idx = len(self.table.page.array[0]) - 1
-        if len(self.table.page.array[0]) == 1 or not self.table.page.has_capacity(page_idx=last_page_idx):
-            self.table.new_pages()
+        if not self.table.page.tail_page_idxs or not self.table.page.has_capacity(self.table.page.tail_page_idxs[-1]):
+            self.table.new_pages(base_page=False)
         
+        # get page idx and 
+        new_page_idx = self.table.page.tail_page_idxs[-1]
+
         for i in range(len(columns)):
 
             col_idx = i + 4
             col_page_array = self.table.page.array[col_idx]
 
-            new_page_idx = len(col_page_array) - 1
             new_byte_offset = self.table.page.page_to_num_records[new_page_idx] * self.table.page.data_size
 
             current_value = int.from_bytes(self.table.page.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8], 'big')
