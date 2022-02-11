@@ -9,7 +9,7 @@ class Index:
     def __init__(self, table):
         # One index for each table. All our empty initially.
         #self.indices = [None] *  table.num_columns
-        self.indicesRange = []
+        #self.indicesRange = []
         #self.indices = [bPlusTree(10)] * table.num_columns
         self.indices = bPlusTree(10)
         pass
