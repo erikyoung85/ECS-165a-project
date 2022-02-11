@@ -52,12 +52,7 @@ class Table:
 # use this when the array you are trying to input infor into gets full
 
     def new_pages(self):
-        # uncompressed pages
-        for i in range(0, 4):
-            self.page.array[i].append([None] * int(self.page.capacity / self.page.data_size))  # list of size equal to bytearray 
-
-        # compressed pages
-        for i in range(4, self.num_columns + 4):
+        for i in range(self.num_columns + 4):
             self.page.array[i].append(bytearray(4096))
 
         self.page.pages += 1

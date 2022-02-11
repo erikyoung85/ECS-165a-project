@@ -8,7 +8,7 @@ class Page:
         self.capacity = 4096    # in bytes
         self.page_to_num_records = [0]
         self.data = bytearray(self.capacity)
-        self.data_size = 4      # offset per element in bytearray
+        self.data_size = 8      # offset per element in bytearray
         self.array = []
         self.pages = 0
 
