@@ -197,7 +197,7 @@ class Query:
                 schema_encoding = schema_encoding[:i] + "1" + schema_encoding[i+1:]
                 self.table.page.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = new_value.to_bytes(8, 'big')
 
-        # set metadata
+        # set metadata for updated record
         self.table.page.array[RID_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = rid.to_bytes(8, 'big')
         self.table.page.array[TIMESTAMP_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = int(datetime.now().timestamp()).to_bytes(8, 'big')
         self.table.page.array[SCHEMA_ENCODING_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = bytes(schema_encoding, 'utf-8')
@@ -205,9 +205,10 @@ class Query:
         self.table.page.array[INDIRECTION_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 4] = current_page_idx.to_bytes(4, 'big')
         self.table.page.array[INDIRECTION_COLUMN][new_page_idx][new_byte_offset + 4 : new_byte_offset + 8] = current_byte_offset.to_bytes(4, 'big')
 
-        # set indirection column values for base page
+        # set indirection column and schema encoding values for BASE PAGE
         self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4] = new_page_idx.to_bytes(4, 'big')
         self.table.page.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8] = new_byte_offset.to_bytes(4, 'big')
+        self.table.page.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8] = bytes(schema_encoding, 'utf-8')
 
         self.table.page.page_to_num_records[new_page_idx] += 1
 
