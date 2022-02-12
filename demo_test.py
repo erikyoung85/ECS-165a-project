@@ -14,12 +14,12 @@ n = 10000
 print("Inserting and Selecting [123456, 1, 2, 3, 4, 5]:")
 query.insert(123456, 1, 2, 3, 4, 5)
 record = query.select(123456, 0, [1, 1, 1, 1, 1, 1])
-print(record[0].columns)
+print(record[0].columns, '\n')
 
 #Select only primary key
 print("We can also select only the primary key:")
 record = query.select(123456, 0, [1, 0, 0, 0, 0, 0])
-print(record[0].columns)
+print(record[0].columns, '\n')
 
 print("You cannot add a duplicate primary key:")    
 #Show that primary key cannot be duplicated
@@ -28,19 +28,19 @@ query.insert(10, 1, 2, 3, 4, 5)
 
 
 record = query.select(10, 0, [1, 1, 1, 1, 1, 1])
-print(record[0].columns)
+print(record[0].columns, '\n')
 
 print("Now, we update [123456, 1, 2, 3, 4, 5] to [6,7,8,9,10] and select it")
 #Updating and selecting a specific entry
 query.update(123456, *[6, 7, 8, 9, 10, 11])
 record = query.select(123456, 0, [1, 1, 1, 1, 1, 1])
-print(record[0].columns)
+print(record[0].columns, '\n')
 
 #Delete a specific record
 print("Deleting and trying to select a record. It is not there")
 query.delete(123456)
 record = query.select(123456, 0, [1, 1, 1, 1, 1, 1])
-print(record)
+print(record, '\n')
 
 print("And now, demonstrating the 5 functions using " + str(n) + " records")
 #Demonstrate insert
@@ -82,7 +82,7 @@ for i in range(0, n, 100):
     end_value = start_value + 100
     result = query.sum(start_value, end_value - 1, randrange(0, 6))
 agg_time_1 = process_time()
-print("Aggregate " + str(n) + " of 100 record batch took:\t\t", agg_time_1 - agg_time_0)
+print("Aggregate " + str(n) + " of 100 record batch took:\t", agg_time_1 - agg_time_0)
 
 #Demonstrate delete
 delete_time_0 = process_time()
