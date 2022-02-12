@@ -32,7 +32,6 @@ for i in range(0, number_of_records):
     records[key] = [key, randint(0, 20), randint(0, 20), randint(0, 20), randint(0, 20)]
     query.insert(*records[key])
     # print('inserted', records[key])
-print(f"Number of pages = {len(query.table.page.array[0])}")
 print("Insert finished")
 
 # Check inserted records using select query
@@ -74,7 +73,6 @@ for key in records:
             pass
             # print('update on', original, 'and', updated_columns, ':', record)
         updated_columns[i] = None
-print(f"Number of pages = {len(query.table.page.array[0])}")
 print("Update finished")
 
 keys = sorted(list(records.keys()))

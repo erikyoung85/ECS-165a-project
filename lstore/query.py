@@ -1,4 +1,3 @@
-from platform import java_ver
 from lstore.table import Table, Record
 from lstore.index import Index
 from lstore.page import Page
