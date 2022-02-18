@@ -10,8 +10,8 @@ class Index:
         # One index for each table. All our empty initially.
         #self.indices = [None] *  table.num_columns
         #self.indicesRange = []
-        #self.indices = [bPlusTree(10)] * table.num_columns
-        self.indices = bPlusTree(10)
+        self.indices = [bPlusTree(10)] * table.num_columns
+        #self.indices = bPlusTree(10)
         pass
 
     """
@@ -22,7 +22,7 @@ class Index:
     def locate(self, column, value):
         RIDs = []
         correctRID = None
-        RIDsList = self.indices.searchRID(str(value))
+        RIDsList = self.indices[column].searchRID(str(value))
         for i in range(len(RIDsList)):
             if str(value) == RIDsList[i][0][0]:
                 correctRID = RIDsList[i][0][1]
@@ -38,7 +38,7 @@ class Index:
     """
 
     def locate_range(self, column, begin, end):
-        return self.indices.searchRange(begin, end)
+        return self.indices[column].searchRange(begin, end)
 
     """
     # optional: Create index on specific column
@@ -47,7 +47,7 @@ class Index:
 
 
     def create_index(self, column_number, key, RID):
-        self.indices.insert(str(key), [str(key), RID])
+        self.indices[column_number].insert(str(key), [str(key), RID])
 
     """
     # optional: Drop index of specific column
@@ -56,5 +56,10 @@ class Index:
     #Deletes index from B+Tree
     def drop_index(self, column_number, key):
         RIDtoDelete = self.locate(column_number, str(key))
-        self.indices.reserveRID(str(key))
+        self.indices[column_number].reserveRID(str(key))
         return RIDtoDelete
+
+
+    #Updating index
+    def update_index(self, column, key, newKey):
+        self.indices[column].updateKey(str(key), str(newKey))
