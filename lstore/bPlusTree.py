@@ -126,6 +126,16 @@ class bPlusTree:
             if key == current_node.RID[i][0][0]:
                 current_node.RID[i][0][1] = "-1"
         return
+    
+    def updateKey(self, key, newKey):
+        current_node = self.search(key)
+        #if key == "906669670":
+        #    print (current_node.RID)
+        for i in range(len(current_node.RID)):
+            if key == current_node.RID[i][0][0]:
+                current_node.RID[i][0][0] = newKey
+                current_node.key[i] = newKey
+        return
 
     # Find the node
     def find(self, key, RID):
