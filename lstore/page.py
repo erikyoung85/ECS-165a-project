@@ -13,8 +13,7 @@ class Page:
         self.array = []
         self.pages = 0
 
-# not sure if this works correctly but it should just check if the bytearray(4096) had an index error, and if
-# so then it just creates a new page within that columns list
+
     def has_capacity(self, page_idx):
         byte_end_idx = (self.page_to_num_records[page_idx] * self.data_size) + self.data_size
         if byte_end_idx < 4096:

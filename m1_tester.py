@@ -18,7 +18,7 @@ query = Query(grades_table)
 # dictionary for records to test the database: test directory
 records = {}
 
-number_of_records = 1000
+number_of_records = 10000
 number_of_aggregates = 100
 seed(3562901)
 
@@ -33,6 +33,7 @@ for i in range(0, number_of_records):
     query.insert(*records[key])
     # print('inserted', records[key])
 print("Insert finished")
+print("number of page ranges: ", len(query.table.pagerange))
 
 # Check inserted records using select query
 for key in records:
@@ -74,6 +75,7 @@ for key in records:
             # print('update on', original, 'and', updated_columns, ':', record)
         updated_columns[i] = None
 print("Update finished")
+print("number of page ranges: ", len(query.table.pagerange))
 
 keys = sorted(list(records.keys()))
 # aggregate on every column 

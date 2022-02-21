@@ -28,8 +28,10 @@ class Table:
         self.num_columns = num_columns
         self.page_directory = {}
         self.index = Index(self)
-        self.page = Page()
-        self.basepage(name)
+        # self.page = Page()
+        self.pagerange = [Page()]
+        self.pagerange_capacity = 32
+        self.basepage(pagerange_idx=0)
 
         # keep track of total records to create the next rid
         self.rid_counter = 0
@@ -40,28 +42,44 @@ class Table:
 # each new page is appended to the corresponding list in page.array
 # each page is just the bytearray(4096)
 
-    def basepage(self, name):
+    def basepage(self, pagerange_idx):
         # create list for each column to hold base and tail pages
         for x in range(0, self.num_columns + 4):
-            self.page.array.append([])
+            self.pagerange[pagerange_idx].array.append([])
         
         # make initial base pages for each column
-        self.new_pages(base_page=True)
+        self.new_pages(pagerange_idx, base_page=True)
 
 # this appends a bytearray(4096) to the list of a specific column.
 # use this when the array you are trying to input infor into gets full
 
-    def new_pages(self, base_page: bool):
-        for i in range(self.num_columns + 4):
-            self.page.array[i].append(bytearray(4096))
+    def new_pages(self, pagerange_idx, base_page: bool):
+        num_full_basepages = len(self.pagerange[pagerange_idx].base_page_idxs)
+        should_create_pagerange = num_full_basepages >= self.pagerange_capacity and base_page == True
 
-        self.page.pages += 1
-        self.page.page_to_num_records.append(0)
+        if should_create_pagerange:
+            # create new pagerange
+            self.pagerange.append(Page())
+            pagerange_idx += 1
+
+            # create list for each column to hold base and tail pages
+            for x in range(0, self.num_columns + 4):
+                self.pagerange[pagerange_idx].array.append([])
+
+
+        # get pagerange that we are working with
+        pagerange = self.pagerange[pagerange_idx]
+
+        for i in range(self.num_columns + 4):
+            pagerange.array[i].append(bytearray(4096))
+
+        pagerange.page_to_num_records.append(0)
+        pagerange.pages += 1
 
         if base_page:
-            self.page.base_page_idxs.append(self.page.pages - 1)
+            pagerange.base_page_idxs.append(pagerange.pages - 1)
         else:
-            self.page.tail_page_idxs.append(self.page.pages - 1)
+            pagerange.tail_page_idxs.append(pagerange.pages - 1)
 
 
     def __merge(self):
