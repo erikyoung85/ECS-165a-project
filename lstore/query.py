@@ -26,7 +26,7 @@ class Query:
     # Return False if record doesn't exist or is locked due to 2PL
     """
     def delete(self, primary_key):
-        #Deleting Index...work in progress
+        #Deleting Index of primary key
         #self.table.index.drop_index(self.table.key, primary_key) 
         rids = self.table.index.drop_index(self.table.key, primary_key)
 
@@ -36,6 +36,22 @@ class Query:
                 return False
             
             (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[rid]
+
+            #Deleting Index of all columns of record after primary key
+            # get base page we are working with
+            pagerange = self.table.pagerange[pagerange_idx]
+
+            # get current latest version of record
+            current_page_idx = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
+            current_byte_offset = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8], 'big')
+
+            for i in range(self.table.num_columns):
+                if i == 0:
+                    continue
+                col_idx = i + 4
+                value_bytes = pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8]
+                self.table.index.drop_index(i, str((int.from_bytes(value_bytes, 'big'))))
+
             self.table.page_directory[rid] = -1
 
             # mark record as deleted
@@ -64,7 +80,15 @@ class Query:
         self.table.rid_counter += 1
 
         # This inserts the an index for the record into the b+tree.
-        self.table.index.create_index(self.table.key, primary_key, rid) 
+        # self.table.index.create_index(self.table.key, primary_key, rid)
+        # if self.table.rid_counter <= 2:
+        #     print(self.table.key)
+        #     print(primary_key)
+        #     print(rid)
+        #     print(" ")
+        #  
+        for i in range(len(columns)):
+            self.table.index.create_index(i, columns[i], rid)
 
         # get page we are working with
         pagerange_idx = len(self.table.pagerange) - 1
@@ -172,6 +196,8 @@ class Query:
         if rid == -1 or rid not in self.table.page_directory:
             return False
 
+        
+
         # get base record
         (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[rid]
 
@@ -180,9 +206,19 @@ class Query:
 
         # get current latest version of record
         current_page_idx = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
+        
         current_byte_offset = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8], 'big')
 
         schema_encoding = "0" * self.table.num_columns
+
+        #Updating Index
+        #print(columns)
+        for i in range(self.table.num_columns):
+            if columns[i] == None:
+                continue
+            col_idx = i + 4
+            value_bytes = pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8]
+            self.table.index.update_index(i, str((int.from_bytes(value_bytes, 'big'))), columns[i])
 
         # if there are no tail pages, or if the current tail page is full, make another one
         if not pagerange.tail_page_idxs or not pagerange.has_capacity(pagerange.tail_page_idxs[-1]):
@@ -239,7 +275,8 @@ class Query:
     """
     def sum(self, start_range, end_range, aggregate_column_index):
         #use this function for getting a list of RIDS within the begin and end range: locate_range(self, column, begin, end)
-        rids = self.table.index.locate_range(self.table.key, start_range, end_range)
+        #rids = self.table.index.locate_range(self.table.key, start_range, end_range)
+        rids = self.table.index.locate_range(aggregate_column_index, start_range, end_range)
 
         if len(rids) == 0:
             return False
