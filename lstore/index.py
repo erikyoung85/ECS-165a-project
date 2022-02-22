@@ -10,7 +10,11 @@ class Index:
         # One index for each table. All our empty initially.
         #self.indices = [None] *  table.num_columns
         #self.indicesRange = []
-        self.indices = [bPlusTree(10)] * table.num_columns
+        self.indices = []
+        for i in range(table.num_columns):
+            self.indices.append(bPlusTree(20))
+        #self.indices = [bPlusTree(10)] * table.num_columns
+        #print (self.indices)
         #self.indices = bPlusTree(10)
         pass
 
@@ -38,6 +42,7 @@ class Index:
     """
 
     def locate_range(self, column, begin, end):
+        #print(column)
         return self.indices[column].searchRange(begin, end)
 
     """
@@ -48,6 +53,10 @@ class Index:
 
     def create_index(self, column_number, key, RID):
         self.indices[column_number].insert(str(key), [str(key), RID])
+        #if RID <= 2:
+            #print(str(key))
+            #print([str(key), RID])
+            #print(" ")
 
     """
     # optional: Drop index of specific column
