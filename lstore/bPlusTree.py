@@ -96,17 +96,26 @@ class bPlusTree:
         keys = []
         resultRIDs = []
         while True:
-            for [[key, rid]] in current_node.RID:
-                # -1 means record is deleted
-                if rid == -1 or int(key) < start:
+            for pairs in current_node.RID:
+                key = pairs[0][0]
+
+                # dont include rids that have a key less than start
+                if int(key) < start:
                     continue
-                
+
                 # if key is larger than end, we have all the RIDs in the range
                 if int(key) > end:
                     return resultRIDs
 
-                resultRIDs.append(rid)
-                keys.append(int(key))
+                # will be multiple pairs if multiple records have same column value
+                for [key, rid] in pairs:
+                    # -1 means record is deleted
+                    if rid == -1:
+                        continue
+
+                    resultRIDs.append(rid)  # unique rid in each pair
+
+                keys.append(int(key))   # each pair has same key, only need to add once
 
             # if there is no sibling node, we have hit the max node, we can return
             if not current_node.nextRID:

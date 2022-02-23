@@ -275,8 +275,8 @@ class Query:
     """
     def sum(self, start_range, end_range, aggregate_column_index):
         #use this function for getting a list of RIDS within the begin and end range: locate_range(self, column, begin, end)
-        #rids = self.table.index.locate_range(self.table.key, start_range, end_range)
-        rids = self.table.index.locate_range(aggregate_column_index, start_range, end_range)
+        rids = self.table.index.locate_range(self.table.key, start_range, end_range)
+        # rids = self.table.index.locate_range(aggregate_column_index, start_range, end_range)
 
         if len(rids) == 0:
             return False
