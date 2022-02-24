@@ -57,6 +57,7 @@ class Database():
                         pagerange.array[col]
                     
                     pagerange.pages = int(read_pagerange.readline())
+                    table.append(pagerange)
                 
                 self.tables.append(table)
 
@@ -74,7 +75,7 @@ class Database():
             f.write(info)
             
             for i in table.pagerange:
-                f.write(i.path)
+                f.write(i.path+"\n")
                 
         for i in self.bufferpool:
             self.write_pagerange(i)
@@ -82,6 +83,10 @@ class Database():
         f.close()
         self.read.close()
 
+    """add a new pagerange to the bufferpool
+    if full, evict the latest dirty pagerange, and append the new one
+    
+    """
     def use_bufferpool(self, pagerange):
         if (len(self.bufferpool) < self.bufferpool_limit):
             self.bufferpool.append(pagerange)
@@ -89,26 +94,31 @@ class Database():
             return True
         elif (len(self.bufferpool) == self.bufferpool_limit):
             for i in range(len(self.bufferpool)):
-                if (not self.dirty[i]):
-                    self.dirty.pop(0)
-                    self.bufferpool.pop(0)
+                if (True): #this should check if any transaction uses the current page
+                    dirty = self.dirty.pop(0)
+                    evict_page  = self.bufferpool.pop(0)
+                    
+                    #write the evicted page onto the file
+                    if dirty:
+                        self.write_pagerange(evict_page)
                     
                     self.dirty.append(False)
                     self.bufferpool.append(pagerange)
                     
                     return True
         return False
+
     
     def write_pagerange(self, pagerange : Page):
         path = pagerange.path
         file = open(path, 'w')        
-        file.write(path)
+        file.write(path+"\n")
         self.write_list(file, pagerange.page_to_num_records)
         self.write_list(file, pagerange.base_page_idxs)
         self.write_list(file, pagerange.tail_page_idxs)
-        file.write(pagerange.data_size)
+        file.write(str(pagerange.data_size)+"\n")
         
-        #write data onto file
+        #write array onto file - not finished
         
         file.write(str(pagerange.pages))
         
@@ -116,6 +126,7 @@ class Database():
         str = ""
         for i in list:
             str = str + " " + str(i)
+        str = str + "\n"
         f.write(str)
     """
     # Creates a new table
