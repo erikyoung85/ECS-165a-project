@@ -147,24 +147,30 @@ class Query:
         results = []
 
         # index.locate(column, value)
+        
+        
         rids = self.table.index.locate(index_column, index_value)
-
+       
         for rid in rids:
             # make sure rid exists in the table and is not deleted
-            if rid == -1 or rid not in self.table.page_directory:
+            
+            if (rid == None):
+                print(2)
                 continue
-
+                
+                
             # get initial version of the record
             (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
             column_values = []
-
+            
             # get base page we are working with
             pagerange = self.table.pagerange[pagerange_idx]
-
+            self.table.db.use_bufferpool(pagerange)    
+            
             # get latest version
             page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset : offset + 4], 'big')
             byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4 : offset + 8], 'big')
-
+            
             # get values of each column if it is in the query_columns
             for i in range(self.table.num_columns):
                 col_idx = i + 4
@@ -179,7 +185,6 @@ class Query:
 
             record = Record(rid, self.table.key, column_values)
             results.append(record)
-
         return results
 
 
@@ -203,7 +208,9 @@ class Query:
 
         # get base page we are working with
         pagerange = self.table.pagerange[pagerange_idx]
-
+        self.table.db.use_bufferpool(pagerange) 
+        index_bufferpool = self.table.db.pagerange_in_bufferpool(pagerange)
+        self.table.db.dirty[index_bufferpool] = True
         # get current latest version of record
         current_page_idx = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
         
@@ -295,7 +302,8 @@ class Query:
 
             (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[rid]
             pagerange = self.table.pagerange[pagerange_idx]
-
+            pagerange = self.table.pagerange[pagerange_idx]
+            self.table.db.use_bufferpool(pagerange) 
             # get latest version
             latest_page_idx = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
             byte_latest_offset = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8], 'big')

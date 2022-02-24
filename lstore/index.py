@@ -13,6 +13,12 @@ class Index:
         self.indices = []
         for i in range(table.num_columns):
             self.indices.append(bPlusTree(20))
+            
+            for RID in table.page_directory:
+                (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[RID]
+                pagerange = table.pagerange[pagerange_idx]
+                key = int.from_bytes(pagerange.array[i+4][base_page_idx][base_offset : base_offset + 4], 'big')
+                self.indices[i].insert(str(key), [str(key), RID])
         #self.indices = [bPlusTree(10)] * table.num_columns
         #print (self.indices)
         #self.indices = bPlusTree(10)

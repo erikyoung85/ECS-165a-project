@@ -14,7 +14,9 @@ class Record:
         self.rid = rid
         self.key = key
         self.columns = columns
-
+    
+    def __str__(self) -> str:
+        return self.rid + " " + self.key
 class Table:
 
     """
@@ -34,7 +36,7 @@ class Table:
         self.pagerange = [page]
         self.pagerange_capacity = 16
         self.basepage(pagerange_idx=0)
-
+        self.db = None
         # keep track of total records to create the next rid
         self.rid_counter = 0
 

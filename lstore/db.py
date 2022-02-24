@@ -1,4 +1,3 @@
-from msilib.schema import File
 from lstore.table import Table
 from lstore.page import Page
 import json
@@ -36,32 +35,36 @@ class Database():
                 """
                 #load main attributes to table
                 table = Table(info[0], int(info[1]), int(info[2]))
-                print(info[3])
                 with open(info[3]) as f:
                     data = f.read()
                 table.page_directory = json.loads(data)
                 
                 #load all pages to table [4] num_pageranges
-                for j in range(info[4]):
-                    path_pagerange = self.read.readline().strip
+                for j in range(int(info[4])):
+                    path_pagerange = self.read.readline().strip()
                     read_pagerange = open(path_pagerange, 'r')
                     pagerange = Page()
                     pagerange.path = read_pagerange.readline().strip()
                     pagerange.page_to_num_records = [int(num) for num in read_pagerange.readline().strip().split()]
                     pagerange.base_page_idxs = [int(num) for num in read_pagerange.readline().strip().split()]
                     pagerange.tail_page_idxs = [int(num) for num in read_pagerange.readline().strip().split()]
-                    pagerange.data_size = int(read_pagerange.readline())
-                    
-                    #load data from array - not finished
-                    for col in range(table.num_columns+4):
-                        pagerange.array[col]
-                    
+                    pagerange.data_size = int(read_pagerange.readline())                 
                     pagerange.pages = int(read_pagerange.readline())
-                    table.append(pagerange)
+                    binary_path = read_pagerange.readline().strip()
+                    #load data from array - not finished
+                    binary_file = open(binary_path, 'rb')
+                    for col in range(table.num_columns+4):
+                        array = []
+                        for k in range(pagerange.pages):
+                            array.append(binary_file.read(4096))                        
+                        pagerange.array.append(array)
+                    binary_file.close()
+                    table.pagerange.append(pagerange)
                 
                 self.tables.append(table)
+                
     def pagerange_in_bufferpool(self, pagerange): 
-        for i in len(self.bufferpool):
+        for i in range(len(self.bufferpool)):
             if (pagerange.path == self.bufferpool[i].path):
                 return i
         
@@ -84,7 +87,6 @@ class Database():
                 
         for i in self.bufferpool:
             self.write_pagerange(i)
-        
         f.close()
         self.read.close()
 
@@ -124,18 +126,26 @@ class Database():
         self.write_list(file, pagerange.page_to_num_records)
         self.write_list(file, pagerange.base_page_idxs)
         self.write_list(file, pagerange.tail_page_idxs)
-        file.write(str(pagerange.data_size)+"\n")
+        file.write(str(pagerange.data_size)+"\n")        
+        file.write(str(pagerange.pages)+"\n")
         
         #write array onto file - not finished
+        binary_path = path + " binary_file"
+        binary_file = open(binary_path, 'wb')
+        print(len(pagerange.array))
+        for i in range(len(pagerange.array) ):
+            for j in pagerange.array[i]:
+                binary_file.write(j)
+        binary_file.close()
+        file.write(binary_path)
+        file.close()
         
-        file.write(str(pagerange.pages))
-        
-    def write_list(self, f : File, list):
-        str = ""
+    def write_list(self, f, list):
+        s = ""
         for i in list:
-            str = str + " " + str(i)
-        str = str + "\n"
-        f.write(str)
+            s = s + " " + str(i)
+        s = s + "\n"
+        f.write(s)
     """
     # Creates a new table
     :param name: string         #Table name
@@ -144,6 +154,7 @@ class Database():
     """
     def create_table(self, name, num_columns, key_index):
         table = Table(name, num_columns, key_index)
+        table.db = self
         self.tables.append(table)
         return table
 
