@@ -29,8 +29,10 @@ class Table:
         self.page_directory = {}
         self.index = Index(self)
         # self.page = Page()
-        self.pagerange = [Page()]
-        self.pagerange_capacity = 32
+        page = Page()
+        page.path = self.name + " page_range 0" 
+        self.pagerange = [page]
+        self.pagerange_capacity = 16
         self.basepage(pagerange_idx=0)
 
         # keep track of total records to create the next rid
@@ -59,7 +61,9 @@ class Table:
 
         if should_create_pagerange:
             # create new pagerange
-            self.pagerange.append(Page())
+            page = Page()
+            page.path = self.name + " page_range " + str(self.pagerange) 
+            self.pagerange.append(page)
             pagerange_idx += 1
 
             # create list for each column to hold base and tail pages
@@ -80,7 +84,6 @@ class Table:
             pagerange.base_page_idxs.append(pagerange.pages - 1)
         else:
             pagerange.tail_page_idxs.append(pagerange.pages - 1)
-
 
     def __merge(self):
         print("merge is happening")
