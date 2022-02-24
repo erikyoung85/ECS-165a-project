@@ -132,7 +132,6 @@ class Database():
         #write array onto file - not finished
         binary_path = path + " binary_file"
         binary_file = open(binary_path, 'wb')
-        print(len(pagerange.array))
         for i in range(len(pagerange.array) ):
             for j in pagerange.array[i]:
                 binary_file.write(j)

@@ -155,7 +155,6 @@ class Query:
             # make sure rid exists in the table and is not deleted
             
             if (rid == None):
-                print(2)
                 continue
                 
                 
