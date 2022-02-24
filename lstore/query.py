@@ -211,8 +211,11 @@ class Query:
 
         schema_encoding = "0" * self.table.num_columns
 
+        # get base record's schema encoding
+        base_schema_encoding_bytes = pagerange.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8]
+        base_schema_encoding = self.convert_schema_encoding(base_schema_encoding_bytes)
+
         #Updating Index
-        #print(columns)
         for i in range(self.table.num_columns):
             if columns[i] == None:
                 continue
@@ -240,13 +243,16 @@ class Query:
             if columns[i] == None:
                 # if column is keeping its current value
                 pagerange.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = current_value.to_bytes(8, 'big')
-            
+
             else:
                 # if column has a new value
                 schema_encoding = schema_encoding[:i] + "1" + schema_encoding[i+1:]
+                base_schema_encoding = base_schema_encoding[:i] + "1" + base_schema_encoding[i+1:]
                 pagerange.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = new_value.to_bytes(8, 'big')
 
         schema_encoding = int(schema_encoding, 2).to_bytes(8, 'big')
+        base_schema_encoding = int(base_schema_encoding, 2).to_bytes(8, 'big')
+
         # set metadata for updated record
         pagerange.array[RID_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = rid.to_bytes(8, 'big')
         pagerange.array[TIMESTAMP_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = int(datetime.now().timestamp()).to_bytes(8, 'big')
@@ -258,7 +264,7 @@ class Query:
         # set indirection column and schema encoding values for BASE PAGE
         pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4] = new_page_idx.to_bytes(4, 'big')
         pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8] = new_byte_offset.to_bytes(4, 'big')
-        pagerange.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8] = schema_encoding
+        pagerange.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8] = base_schema_encoding
 
         pagerange.page_to_num_records[new_page_idx] += 1
 
@@ -315,3 +321,14 @@ class Query:
             u = self.update(key, *updated_columns)
             return u
         return False
+
+
+    """
+    helper function
+    """
+    def convert_schema_encoding(self, schema_bytes):
+        schema_bytes = bin(int.from_bytes(schema_bytes, 'big'))[2:]
+        while len(schema_bytes) < self.table.num_columns:
+            schema_bytes = "0" + schema_bytes
+
+        return schema_bytes
