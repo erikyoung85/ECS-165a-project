@@ -60,7 +60,12 @@ class Database():
                     table.append(pagerange)
                 
                 self.tables.append(table)
-
+    def pagerange_in_bufferpool(self, pagerange): 
+        for i in self.bufferpool:
+            if (pagerange.path == i.path):
+                return i
+        
+        return -1
 
     def close(self):
         f = open(self.path, 'w')
@@ -84,10 +89,13 @@ class Database():
         self.read.close()
 
     """add a new pagerange to the bufferpool
-    if full, evict the latest dirty pagerange, and append the new one
-    
+    if all pagerange are in transaction, return False
+    if already exists in bufferpool, return False
+    otherwise, append new pagerange and return True
     """
     def use_bufferpool(self, pagerange):
+        if not self.pagerange_in_bufferpool(pagerange) == -1:
+            return False
         if (len(self.bufferpool) < self.bufferpool_limit):
             self.bufferpool.append(pagerange)
             self.dirty.append(False)
