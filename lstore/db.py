@@ -61,8 +61,8 @@ class Database():
                 
                 self.tables.append(table)
     def pagerange_in_bufferpool(self, pagerange): 
-        for i in self.bufferpool:
-            if (pagerange.path == i.path):
+        for i in len(self.bufferpool):
+            if (pagerange.path == self.bufferpool[i].path):
                 return i
         
         return -1
