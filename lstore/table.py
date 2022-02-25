@@ -2,6 +2,7 @@ from lstore.index import Index
 from lstore.page import Page
 import time, threading
 from datetime import datetime
+import copy
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -38,7 +39,6 @@ class Table:
         self.pagerange_capacity = 16
         self.basepage(pagerange_idx=0)
         self.db = None
-        threading.Timer(30, self.__merge()).start()
         # keep track of total records to create the next rid
         self.rid_counter = 1
 
@@ -89,73 +89,56 @@ class Table:
         else:
             pagerange.tail_page_idxs.append(pagerange.pages - 1)
 
-    def __merge(self):
-        page = Page()
-        page.path = self.name + " page_range " + str(len(self.pagerange))
-        self.pagerange.append(page)
-        pagerange_amt = len(self.pagerange)
+    def __merge(self, pagerange_idx):
+        new_pagerange = Page()
+        self.pagerange.append(new_pagerange)
+        new_pagerange_idx = len(self.pagerange) - 1
+
+        # copy base pages
+        for col_idx in range(self.num_columns + 4):
+            for page_idx in self.pagerange[pagerange_idx].base_page_idxs:
+                # copy each base page
+                new_pagerange.array[col_idx].append(copy.deepcopy(self.pagerange[pagerange_idx].array[col_idx][page_idx]))
+                new_page_idx = len(new_pagerange.array[col_idx]) - 1
+                new_pagerange.base_page_idxs.append(new_page_idx)
+
+        new_pagerange.pages = len(new_pagerange.array) - 1
+
+        # update values
+        for page_idx in range(new_pagerange.base_page_idxs):
+            for byte_offset in range(0, 4086, 8):
+                rid = int.from_bytes(new_pagerange.array[RID_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
+                schema_encoding = int.from_bytes(new_pagerange.array[SCHEMA_ENCODING_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
+
+                # set new indirection page_idx value
+                new_pagerange.array[INDIRECTION_COLUMN][page_idx][byte_offset : byte_offset + 4] = page_idx.to_bytes(4, 'big')
+                
+                # update if necessary
+                if schema_encoding != 0:
+                    # get most updated values
+                    new_values = self.latest_by_rid(rid)
+
+                    # update page directory
+                    self.page_directory[rid] = (new_pagerange_idx, new_page_idx, byte_offset)
+
+                    # add latest updated columns update
+                    self._update_record(rid, new_values)
+                else:
+                    # ONLY update page directory
+                    self.page_directory[rid] = (new_pagerange_idx, new_page_idx, byte_offset)
+
+        # once all done, set initial pagerange to NULL to save space
+        self.pagerange[pagerange_idx] = None
 
 
-    # Iterates through every page range
-        for ranges in range(pagerange_amt):
-            pagerange = self.pagerange[ranges]
 
-        # checks if the page range has been merged and if it has 0 tail pages
-            if not pagerange.hasMerged and len(pagerange.tail_page_idxs) > 0:
-                pagerange.hasMerged = True
-
-                for col in self.num_columns + 4:
-                    for basepage in self.page.base_page_idxs:
-                        pagerange.append(self.pagerange[ranges][col][basepage])
-
-                for pages in pagerange[INDIRECTION_COLUMN]:
-                    for values in pagerange[INDIRECTION_COLUMN][pages]:
-                        if values[0].to_bytes(8, 'big') != page:
-                            (page_range_idx, page_idx, offset) = pagerange[INDIRECTION_COLUMN][pages][values]
-
-                            page_idx_latest = int.from_bytes(
-                            pagerange.array[INDIRECTION_COLUMN][pages][offset: offset + 4], 'big')
-                            byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][pages][offset + 4: offset + 8], 'big')
-
-                            # if the last base page is full, make another one
-                            use_page_idx = pagerange.base_page_idxs[-1]
-                            if not pagerange.has_capacity(use_page_idx):
-                                self.new_pages(pagerange_idx, base_page=True)
-
-                                # update page we are working with
-                                pagerange_idx = len(self.pagerange) - 1
-                                pagerange = self.pagerange[pagerange_idx]
-                                use_page_idx = pagerange.base_page_idxs[-1]
-
-                            for i in range(self.num_columns):
-                                col_idx = i + 4
-
-                                # get offset index
-                                byte_offset = pagerange.page_to_num_records[page_idx] * pagerange.data_size
-                                data_size = pagerange.data_size
-
-                                # set data
-                                pagerange.array[col_idx][use_page_idx][byte_offset: byte_offset + 8] = self.pagerange[ranges][col_idx][page_idx_latest][byte_offset_latest]
-
-                            schema_encoding = "0" * self.num_columns
-                            page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][pages][offset: offset + 4], 'big')
-                            byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][pages][offset + 4: offset + 8], 'big')
-
-                            pagerange.array[RID_COLUMN][page_idx][offset: offset + 8] = pagerange[RID_COLUMN][page][values]
-                            pagerange.array[TIMESTAMP_COLUMN][page_idx][offset: offset + 8] = int(datetime.now().timestamp()).to_bytes(8, 'big')
-                            pagerange.array[SCHEMA_ENCODING_COLUMN][page_idx][offset: offset + 8] = schema_encoding.to_bytes(8, 'big')
-
-                            pageidx = len(self.pagerange[ranges][INDIRECTION_COLUMN][byte_offset_latest])
-                            pagerange.array[INDIRECTION_COLUMN][page_idx][offset: offset + 4] = page.to_bytes(4, 'big')
-                            pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4: offset + 8] = byte_offset.to_bytes(4, 'big')
-
-
-    def update_record(self, rid, columns):
+    def _update_record(self, rid, columns):
         # get base record
         (pagerange_idx, base_page_idx, base_offset) = self.page_directory[rid]
 
-        # get base page we are working with
+        # get pagerange we are working with
         pagerange = self.pagerange[pagerange_idx]
+
         self.db.use_bufferpool(pagerange) 
         index_bufferpool = self.db.pagerange_in_bufferpool(pagerange)
         self.db.dirty[index_bufferpool] = True
@@ -228,4 +211,23 @@ class Table:
 
     def latest_by_rid(self, rid):
 
-        pass
+        # get initial version of the record
+        (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
+        column_values = []
+        
+        # get base page we are working with
+        pagerange = self.table.pagerange[pagerange_idx]
+        self.table.db.use_bufferpool(pagerange)
+        
+        # get latest version
+        page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset : offset + 4], 'big')
+        byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4 : offset + 8], 'big')
+
+        # get values of each column if it is in the query_columns
+        for i in range(self.table.num_columns):
+            col_idx = i + 4
+
+            value_bytes = pagerange.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
+            column_values.append(int.from_bytes(value_bytes, 'big'))
+
+        return column_values

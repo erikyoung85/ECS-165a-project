@@ -200,7 +200,7 @@ class Query:
         if rid == -1 or rid not in self.table.page_directory:
             return False
 
-        return self.table.update_record(rid, columns)
+        return self.table._update_record(rid, columns)
 
 
     """
