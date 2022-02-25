@@ -30,10 +30,10 @@ query.insert(10, 1, 2, 3, 4, 5)
 record = query.select(10, 0, [1, 1, 1, 1, 1, 1])
 print(record[0].columns, '\n')
 
-print("Now, we update [123456, 1, 2, 3, 4, 5] to [6,7,8,9,10] and select it")
+print("Now, we update [123456, 1, 2, 3, 4, 5] to [6,7,8,9,10,11] and select it")
 #Updating and selecting a specific entry
 query.update(123456, *[6, 7, 8, 9, 10, 11])
-record = query.select(123456, 0, [1, 1, 1, 1, 1, 1])
+record = query.select(6, 0, [1, 1, 1, 1, 1, 1])
 print(record[0].columns, '\n')
 
 #Delete a specific record
