@@ -16,7 +16,8 @@ class Query:
     Any query that crashes (due to exceptions) should return False
     """
     def __init__(self, table):
-        self.table = table
+        self.table: Table = table
+        self.num_updates = 0
         pass
 
     """
@@ -200,7 +201,15 @@ class Query:
         if rid == -1 or rid not in self.table.page_directory:
             return False
 
-        return self.table._update_record(rid, columns)
+        if self.table._update_record(rid, columns):
+            self.num_updates += 1
+            if self.num_updates >= 500:
+                (pagerange_idx, _, _) = self.table.page_directory[rid]
+                self.table._merge(pagerange_idx)
+            
+            return True
+        
+        return False
 
 
     """
@@ -254,14 +263,3 @@ class Query:
             u = self.update(key, *updated_columns)
             return u
         return False
-
-
-    """
-    helper function
-    """
-    def convert_schema_encoding(self, schema_bytes):
-        schema_bytes = bin(int.from_bytes(schema_bytes, 'big'))[2:]
-        while len(schema_bytes) < self.table.num_columns:
-            schema_bytes = "0" + schema_bytes
-
-        return schema_bytes

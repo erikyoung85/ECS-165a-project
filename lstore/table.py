@@ -89,8 +89,11 @@ class Table:
         else:
             pagerange.tail_page_idxs.append(pagerange.pages - 1)
 
-    def __merge(self, pagerange_idx):
+    def _merge(self, pagerange_idx):
         new_pagerange = Page()
+        for _ in range(self.num_columns + 4):
+            new_pagerange.array.append([])
+
         self.pagerange.append(new_pagerange)
         new_pagerange_idx = len(self.pagerange) - 1
 
@@ -99,13 +102,14 @@ class Table:
             for page_idx in self.pagerange[pagerange_idx].base_page_idxs:
                 # copy each base page
                 new_pagerange.array[col_idx].append(copy.deepcopy(self.pagerange[pagerange_idx].array[col_idx][page_idx]))
+                new_pagerange.page_to_num_records.append(self.pagerange[pagerange_idx].base_page_idxs[page_idx])
                 new_page_idx = len(new_pagerange.array[col_idx]) - 1
                 new_pagerange.base_page_idxs.append(new_page_idx)
 
         new_pagerange.pages = len(new_pagerange.array) - 1
 
         # update values
-        for page_idx in range(new_pagerange.base_page_idxs):
+        for page_idx in new_pagerange.base_page_idxs:
             for byte_offset in range(0, 4086, 8):
                 rid = int.from_bytes(new_pagerange.array[RID_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
                 schema_encoding = int.from_bytes(new_pagerange.array[SCHEMA_ENCODING_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
@@ -212,22 +216,33 @@ class Table:
     def latest_by_rid(self, rid):
 
         # get initial version of the record
-        (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
+        (pagerange_idx, page_idx, offset) = self.page_directory[rid]
         column_values = []
         
         # get base page we are working with
-        pagerange = self.table.pagerange[pagerange_idx]
-        self.table.db.use_bufferpool(pagerange)
+        pagerange = self.pagerange[pagerange_idx]
+        self.db.use_bufferpool(pagerange)
         
         # get latest version
         page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset : offset + 4], 'big')
         byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4 : offset + 8], 'big')
 
         # get values of each column if it is in the query_columns
-        for i in range(self.table.num_columns):
+        for i in range(self.num_columns):
             col_idx = i + 4
 
             value_bytes = pagerange.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
             column_values.append(int.from_bytes(value_bytes, 'big'))
 
         return column_values
+
+
+    """
+    helper function
+    """
+    def convert_schema_encoding(self, schema_bytes):
+        schema_bytes = bin(int.from_bytes(schema_bytes, 'big'))[2:]
+        while len(schema_bytes) < self.num_columns:
+            schema_bytes = "0" + schema_bytes
+
+        return schema_bytes
