@@ -11,18 +11,12 @@ class Index:
         #self.indices = [None] *  table.num_columns
         #self.indicesRange = []
         self.indices = []
-        for i in range(table.num_columns):
-            self.indices.append(bPlusTree(20))
-            
-            for RID in table.page_directory:
-                (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[RID]
-                pagerange = table.pagerange[pagerange_idx]
-                key = int.from_bytes(pagerange.array[i+4][base_page_idx][base_offset : base_offset + 4], 'big')
-                self.indices[i].insert(str(key), [str(key), RID])
+        self.table = table
         #self.indices = [bPlusTree(10)] * table.num_columns
         #print (self.indices)
         #self.indices = bPlusTree(10)
-        pass
+        for i in range(self.table.num_columns):
+            self.indices.append(bPlusTree(20))
 
     """
     # returns the location of all records with the given value on column "column"
@@ -78,3 +72,13 @@ class Index:
     #Updating index
     def update_index(self, column, key, newKey):
         self.indices[column].updateKey(str(key), str(newKey))
+        
+    def all_index(self):
+        for i in range(self.table.num_columns):
+            self.indices.append(bPlusTree(20))
+            
+            for RID in self.table.page_directory:
+                (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[RID]
+                pagerange = self.table.pagerange[pagerange_idx]
+                key = int.from_bytes(pagerange.array[i+4][base_page_idx][base_offset : base_offset + 8], 'big')
+                self.indices[i].insert(str(key), [str(key), RID])
