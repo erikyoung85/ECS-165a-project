@@ -38,7 +38,8 @@ class Table:
         self.pagerange_capacity = 16
         self.basepage(pagerange_idx=0)
         self.db = None
-        threading.Timer(30, self.__merge()).start()
+        self.thread = threading.Timer(30, self.__merge())
+        self.thread.start()
         # keep track of total records to create the next rid
         self.rid_counter = 1
 
@@ -90,9 +91,7 @@ class Table:
             pagerange.tail_page_idxs.append(pagerange.pages - 1)
 
     def __merge(self):
-        page = Page()
-        page.path = self.name + " page_range " + str(len(self.pagerange))
-        self.pagerange.append(page)
+        
         pagerange_amt = len(self.pagerange)
 
 
@@ -103,7 +102,9 @@ class Table:
         # checks if the page range has been merged and if it has 0 tail pages
             if not pagerange.hasMerged and len(pagerange.tail_page_idxs) > 0:
                 pagerange.hasMerged = True
-
+                page = Page()
+                page.path = self.name + " page_range " + str(len(self.pagerange))
+                self.pagerange.append(page)
                 for col in self.num_columns + 4:
                     for basepage in self.page.base_page_idxs:
                         pagerange.append(self.pagerange[ranges][col][basepage])

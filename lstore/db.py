@@ -2,6 +2,8 @@ from lstore.table import Table
 from lstore.page import Page
 import json
 import os
+import time, threading
+
 def int_keys(ordered_pairs):
         result = {}
         for key, value in ordered_pairs:
@@ -90,6 +92,7 @@ class Database():
         f.write(str(len(self.tables))+"\n")
         for i in range(len(self.tables)):
             table : Table = self.tables[i]
+            table.thread.cancel()
             page_directory_path = table.name + "_" + "page_directory.json"
             with open(page_directory_path, 'w') as file:
                 json.dump(table.page_directory, file)
@@ -99,9 +102,11 @@ class Database():
             
             for i in table.pagerange:
                 f.write(i.path+"\n")
+            
                 
         for i in self.bufferpool:
             self.write_pagerange(i)
+        
         f.close()
         self.read.close()
 
