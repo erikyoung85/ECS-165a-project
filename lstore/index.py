@@ -69,6 +69,16 @@ class Index:
         self.indices[column_number].reserveRID(str(key))
         return RIDtoDelete
 
+    
+    # Creates a B+Tree in self.indices for a specified column
+    def create_tree(self, column_number):
+        self.indices[column_number] = bPlusTree(20)
+    
+    # Deletes a B+Tree in self.indices for a specified column
+    def delete_tree(self, column_number):
+        #del self.indices[column_number]
+        self.indices[column_number] = None
+        
 
     #Updating index
     def update_index(self, column, key, newKey):
