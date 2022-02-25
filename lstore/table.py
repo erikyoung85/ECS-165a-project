@@ -64,7 +64,7 @@ class Table:
         if should_create_pagerange:
             # create new pagerange
             page = Page()
-            page.path = self.name + " page_range " + str(self.pagerange) 
+            page.path = self.name + " page_range " + str(len(self.pagerange) )
             self.pagerange.append(page)
             pagerange_idx += 1
 
