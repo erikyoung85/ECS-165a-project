@@ -38,7 +38,7 @@ class Table:
         self.basepage(pagerange_idx=0)
         self.db = None
         # keep track of total records to create the next rid
-        self.rid_counter = 0
+        self.rid_counter = 1
 
 
 # this function creates one page per column when the table is first created

@@ -2,6 +2,16 @@ from lstore.table import Table
 from lstore.page import Page
 import json
 import os
+def int_keys(ordered_pairs):
+        result = {}
+        for key, value in ordered_pairs:
+            try:
+                key = int(key)
+            except ValueError:
+                pass
+            result[key] = value
+        return result
+    
 class Database():
 
     def __init__(self):
@@ -13,6 +23,8 @@ class Database():
         self.dirty = []
         self.bufferpool_limit = 32
         pass
+
+    
 
     # Not required for milestone1
     def open(self, path):
@@ -37,7 +49,8 @@ class Database():
                 table = Table(info[0], int(info[1]), int(info[2]))
                 with open(info[3]) as f:
                     data = f.read()
-                table.page_directory = json.loads(data)
+                table.page_directory = json.loads(data, object_pairs_hook=int_keys)
+                
                 table.pagerange = []
                 #load all pages to table [4] num_pageranges
                 for j in range(int(info[4])):
@@ -77,7 +90,7 @@ class Database():
             page_directory_path = table.name + "_" + "page_directory.json"
             with open(page_directory_path, 'w') as file:
                 json.dump(table.page_directory, file)
-
+            
             info = table.name + " " + str(table.num_columns) + " " + str(table.key) + " " + page_directory_path + " " + str(len(table.pagerange)) + "\n"
             f.write(info)
             

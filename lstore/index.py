@@ -1,5 +1,6 @@
 from lstore.bPlusTree import bPlusTree, Node
 
+
 """
 A data strucutre holding indices for various columns of a table. Key column should be indexd by default, other columns can be indexed through this object. Indices are usually B-Trees, but other data structures can be used as well.
 """
@@ -74,11 +75,25 @@ class Index:
         self.indices[column].updateKey(str(key), str(newKey))
         
     def all_index(self):
-        for i in range(self.table.num_columns):
-            self.indices.append(bPlusTree(20))
-            
-            for RID in self.table.page_directory:
-                (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[RID]
-                pagerange = self.table.pagerange[pagerange_idx]
-                key = int.from_bytes(pagerange.array[i+4][base_page_idx][base_offset : base_offset + 8], 'big')
-                self.indices[i].insert(str(key), [str(key), RID])
+        for i in len(self.table.pagerange):
+            #Check if the page has merged: if yes/true, no need to care about it.
+            if (True):
+                pagerange = self.table.pagerange[i]
+                for base_page_idxs in pagerange.base_page_idxs:
+                    for offset in range(0, 4096, 8):
+                        rid = int.from_bytes(pagerange.array[1][base_page_idxs][offset : offset + 8])
+                        if (rid == -1 or rid == 0):
+                            continue
+                        
+                        (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
+                        page_idx_latest = int.from_bytes(pagerange.array[0][page_idx][offset : offset + 4], 'big')
+                        byte_offset_latest = int.from_bytes(pagerange.array[0][page_idx][offset + 4 : offset + 8], 'big')
+                        for indice in range(len(self.indices)):
+                            col_idx = i + 4
+
+                            
+                            # get indirection value
+                            value_bytes = pagerange.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
+                            key = int.from_bytes(value_bytes, 'big')
+                            self.indices[indice].insert(str(key), [str(key), rid])
+        
