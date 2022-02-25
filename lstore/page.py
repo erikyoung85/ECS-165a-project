@@ -12,6 +12,7 @@ class Page:
         self.tail_page_idxs = []
         self.data_size = 8      # offset per element in bytearray
         self.array = []
+        self.hasMerged = False
         self.pages = 0
         
 
