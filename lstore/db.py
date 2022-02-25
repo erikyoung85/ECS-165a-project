@@ -56,7 +56,7 @@ class Database():
                     for col in range(table.num_columns+4):
                         array = []
                         for k in range(pagerange.pages):
-                            array.append(binary_file.read(4096))                        
+                            array.append(bytearray(binary_file.read(4096)))                        
                         pagerange.array.append(array)
                     binary_file.close()
                     table.pagerange.append(pagerange)
