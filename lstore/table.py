@@ -89,6 +89,7 @@ class Table:
         else:
             pagerange.tail_page_idxs.append(pagerange.pages - 1)
 
+
     def _merge(self, pagerange_idx):
         new_pagerange = Page()
         for _ in range(self.num_columns + 4):
@@ -126,7 +127,7 @@ class Table:
                     self.page_directory[rid] = (new_pagerange_idx, new_page_idx, byte_offset)
 
                     # add latest updated columns update
-                    self._update_record(rid, new_values)
+                    self._update_record(rid, new_values, update_index=False)
                 else:
                     # ONLY update page directory
                     self.page_directory[rid] = (new_pagerange_idx, new_page_idx, byte_offset)
@@ -136,7 +137,7 @@ class Table:
 
 
 
-    def _update_record(self, rid, columns):
+    def _update_record(self, rid, columns, update_index=True):
         # get base record
         (pagerange_idx, base_page_idx, base_offset) = self.page_directory[rid]
 
@@ -158,12 +159,13 @@ class Table:
         base_schema_encoding = self.convert_schema_encoding(base_schema_encoding_bytes)
 
         #Updating Index
-        for i in range(self.num_columns):
-            if columns[i] == None:
-                continue
-            col_idx = i + 4
-            value_bytes = pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8]
-            self.index.update_index(i, str((int.from_bytes(value_bytes, 'big'))), columns[i])
+        if update_index:
+            for i in range(self.num_columns):
+                if columns[i] == None:
+                    continue
+                col_idx = i + 4
+                value_bytes = pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8]
+                self.index.update_index(i, str((int.from_bytes(value_bytes, 'big'))), columns[i])
 
         # if there are no tail pages, or if the current tail page is full, make another one
         if not pagerange.tail_page_idxs or not pagerange.has_capacity(pagerange.tail_page_idxs[-1]):
