@@ -154,7 +154,7 @@ class Query:
         for rid in rids:
             # make sure rid exists in the table and is not deleted
             
-            if (rid == None):
+            if rid == -1 or rid not in self.table.page_directory:
                 continue
                 
                 
