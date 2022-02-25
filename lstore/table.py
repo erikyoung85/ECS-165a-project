@@ -108,11 +108,12 @@ class Table:
                 new_page_idx = len(new_pagerange.array[col_idx]) - 1
                 new_pagerange.base_page_idxs.append(new_page_idx)
 
-        new_pagerange.pages = len(new_pagerange.array) - 1
+        new_pagerange.pages = len(new_pagerange.array[0]) - 1
 
         # update values
         for page_idx in new_pagerange.base_page_idxs:
-            for byte_offset in range(0, 4086, 8):
+            num_records = new_pagerange.page_to_num_records[page_idx]
+            for byte_offset in range(0, num_records * 8, 8):
                 rid = int.from_bytes(new_pagerange.array[RID_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
                 schema_encoding = int.from_bytes(new_pagerange.array[SCHEMA_ENCODING_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
 
@@ -184,6 +185,8 @@ class Table:
 
             current_value = int.from_bytes(pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8], 'big')
             new_value = columns[i]
+
+            temp = pagerange.array[col_idx]
 
             if columns[i] == None:
                 # if column is keeping its current value
