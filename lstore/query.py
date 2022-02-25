@@ -2,6 +2,7 @@ from lstore.table import Table, Record
 from lstore.index import Index
 from lstore.page import Page
 from datetime import datetime
+import threading
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -203,9 +204,10 @@ class Query:
 
         if self.table._update_record(rid, columns):
             self.num_updates += 1
-            if self.num_updates >= 500:
+            if self.num_updates >= 5000:
                 (pagerange_idx, _, _) = self.table.page_directory[rid]
-                self.table._merge(pagerange_idx)
+                threading.Thread(self.table._merge(pagerange_idx))
+                self.num_updates = 0
             
             return True
         
