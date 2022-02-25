@@ -97,6 +97,7 @@ class Table:
 
         self.pagerange.append(new_pagerange)
         new_pagerange_idx = len(self.pagerange) - 1
+        new_pagerange.path = self.name + " page_range " + str(len(self.pagerange) )
 
         # copy base pages
         for col_idx in range(self.num_columns + 4):
@@ -124,20 +125,20 @@ class Table:
                     new_values = self.latest_by_rid(rid)
 
                     # update page directory
-                    self.page_directory[rid] = (new_pagerange_idx, new_page_idx, byte_offset)
+                    self.page_directory[rid] = (new_pagerange_idx, page_idx, byte_offset)
 
                     # add latest updated columns update
-                    self._update_record(rid, new_values, update_index=False)
+                    self._update_record(rid, new_values, merging=True)
                 else:
                     # ONLY update page directory
-                    self.page_directory[rid] = (new_pagerange_idx, new_page_idx, byte_offset)
+                    self.page_directory[rid] = (new_pagerange_idx, page_idx, byte_offset)
 
         # once all done, set initial pagerange to NULL to save space
-        self.pagerange[pagerange_idx] = None
+        # self.pagerange[pagerange_idx] = None
 
 
 
-    def _update_record(self, rid, columns, update_index=True):
+    def _update_record(self, rid, columns, merging=False):
         # get base record
         (pagerange_idx, base_page_idx, base_offset) = self.page_directory[rid]
 
@@ -159,7 +160,7 @@ class Table:
         base_schema_encoding = self.convert_schema_encoding(base_schema_encoding_bytes)
 
         #Updating Index
-        if update_index:
+        if not merging:
             for i in range(self.num_columns):
                 if columns[i] == None:
                     continue

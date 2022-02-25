@@ -161,28 +161,29 @@ class Query:
                 
                 
             # get initial version of the record
-            (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
-            column_values = []
+            # (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
+            # column_values = []
             
             # get base page we are working with
-            pagerange = self.table.pagerange[pagerange_idx]
-            self.table.db.use_bufferpool(pagerange)    
+            # pagerange = self.table.pagerange[pagerange_idx]
+            # self.table.db.use_bufferpool(pagerange)    
             
-            # get latest version
-            page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset : offset + 4], 'big')
-            byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4 : offset + 8], 'big')
+            # # get latest version
+            # page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset : offset + 4], 'big')
+            # byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4 : offset + 8], 'big')
             
-            # get values of each column if it is in the query_columns
-            for i in range(self.table.num_columns):
-                col_idx = i + 4
+            # # get values of each column if it is in the query_columns
+            # for i in range(self.table.num_columns):
+            #     col_idx = i + 4
 
-                if query_columns[i]:
-                    # get indirection value
-                    value_bytes = pagerange.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
-                    column_values.append(int.from_bytes(value_bytes, 'big'))
+            #     if query_columns[i]:
+            #         # get indirection value
+            #         value_bytes = pagerange.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
+            #         column_values.append(int.from_bytes(value_bytes, 'big'))
 
-                else:
-                    column_values.append(None)
+            #     else:
+            #         column_values.append(None)
+            column_values = self.table.latest_by_rid(rid)
 
             record = Record(rid, self.table.key, column_values)
             results.append(record)
