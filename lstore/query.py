@@ -206,9 +206,9 @@ class Query:
         if self.table._update_record(rid, columns):
             self.num_updates += 1
             if self.num_updates >= 5000:
+                self.num_updates = 0
                 (pagerange_idx, _, _) = self.table.page_directory[rid]
                 threading.Thread(self.table._merge(pagerange_idx))
-                self.num_updates = 0
             
             return True
         

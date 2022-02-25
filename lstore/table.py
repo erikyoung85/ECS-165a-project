@@ -112,8 +112,8 @@ class Table:
 
         # update values
         for page_idx in new_pagerange.base_page_idxs:
-            num_records = new_pagerange.page_to_num_records[page_idx]
-            for byte_offset in range(0, num_records * 8, 8):
+            max_bytes = new_pagerange.page_to_num_records[page_idx] * 8
+            for byte_offset in range(0, 4096, 8):
                 rid = int.from_bytes(new_pagerange.array[RID_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
                 schema_encoding = int.from_bytes(new_pagerange.array[SCHEMA_ENCODING_COLUMN][page_idx][byte_offset : byte_offset + 8], 'big')
 
