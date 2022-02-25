@@ -114,17 +114,17 @@ class Table:
                             (page_range_idx, page_idx, offset) = pagerange[INDIRECTION_COLUMN][pages][values]
 
                             page_idx_latest = int.from_bytes(
-                                pagerange.array[INDIRECTION_COLUMN][pages][offset: offset + 4], 'big')
+                            pagerange.array[INDIRECTION_COLUMN][pages][offset: offset + 4], 'big')
                             byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][pages][offset + 4: offset + 8], 'big')
 
                             # if the last base page is full, make another one
                             use_page_idx = pagerange.base_page_idxs[-1]
                             if not pagerange.has_capacity(use_page_idx):
-                                self.table.new_pages(pagerange_idx, base_page=True)
+                                self.new_pages(pagerange_idx, base_page=True)
 
                                 # update page we are working with
-                                pagerange_idx = len(self.table.pagerange) - 1
-                                pagerange = self.table.pagerange[pagerange_idx]
+                                pagerange_idx = len(self.pagerange) - 1
+                                pagerange = self.pagerange[pagerange_idx]
                                 use_page_idx = pagerange.base_page_idxs[-1]
 
                             for i in range(self.num_columns):
@@ -137,7 +137,7 @@ class Table:
                                 # set data
                                 pagerange.array[col_idx][use_page_idx][byte_offset: byte_offset + 8] = self.pagerange[ranges][col_idx][page_idx_latest][byte_offset_latest]
 
-                            schema_encoding = "0" * self.table.num_columns
+                            schema_encoding = "0" * self.num_columns
                             page_idx_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][pages][offset: offset + 4], 'big')
                             byte_offset_latest = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][pages][offset + 4: offset + 8], 'big')
 
@@ -148,4 +148,84 @@ class Table:
                             pageidx = len(self.pagerange[ranges][INDIRECTION_COLUMN][byte_offset_latest])
                             pagerange.array[INDIRECTION_COLUMN][page_idx][offset: offset + 4] = page.to_bytes(4, 'big')
                             pagerange.array[INDIRECTION_COLUMN][page_idx][offset + 4: offset + 8] = byte_offset.to_bytes(4, 'big')
- 
+
+
+    def update_record(self, rid, columns):
+        # get base record
+        (pagerange_idx, base_page_idx, base_offset) = self.page_directory[rid]
+
+        # get base page we are working with
+        pagerange = self.pagerange[pagerange_idx]
+        self.db.use_bufferpool(pagerange) 
+        index_bufferpool = self.db.pagerange_in_bufferpool(pagerange)
+        self.db.dirty[index_bufferpool] = True
+        # get current latest version of record
+        current_page_idx = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4], 'big')
+        
+        current_byte_offset = int.from_bytes(pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8], 'big')
+
+        schema_encoding = "0" * self.num_columns
+
+        # get base record's schema encoding
+        base_schema_encoding_bytes = pagerange.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8]
+        base_schema_encoding = self.convert_schema_encoding(base_schema_encoding_bytes)
+
+        #Updating Index
+        for i in range(self.num_columns):
+            if columns[i] == None:
+                continue
+            col_idx = i + 4
+            value_bytes = pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8]
+            self.index.update_index(i, str((int.from_bytes(value_bytes, 'big'))), columns[i])
+
+        # if there are no tail pages, or if the current tail page is full, make another one
+        if not pagerange.tail_page_idxs or not pagerange.has_capacity(pagerange.tail_page_idxs[-1]):
+            self.new_pages(pagerange_idx, base_page=False)
+        
+        # get page idx and 
+        new_page_idx = pagerange.tail_page_idxs[-1]
+
+        for i in range(len(columns)):
+
+            col_idx = i + 4
+            col_page_array = pagerange.array[col_idx]
+
+            new_byte_offset = pagerange.page_to_num_records[new_page_idx] * pagerange.data_size
+
+            current_value = int.from_bytes(pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8], 'big')
+            new_value = columns[i]
+
+            if columns[i] == None:
+                # if column is keeping its current value
+                pagerange.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = current_value.to_bytes(8, 'big')
+
+            else:
+                # if column has a new value
+                schema_encoding = schema_encoding[:i] + "1" + schema_encoding[i+1:]
+                base_schema_encoding = base_schema_encoding[:i] + "1" + base_schema_encoding[i+1:]
+                pagerange.array[col_idx][new_page_idx][new_byte_offset : new_byte_offset + 8] = new_value.to_bytes(8, 'big')
+
+        schema_encoding = int(schema_encoding, 2).to_bytes(8, 'big')
+        base_schema_encoding = int(base_schema_encoding, 2).to_bytes(8, 'big')
+
+        # set metadata for updated record
+        pagerange.array[RID_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = rid.to_bytes(8, 'big')
+        pagerange.array[TIMESTAMP_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = int(datetime.now().timestamp()).to_bytes(8, 'big')
+        pagerange.array[SCHEMA_ENCODING_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 8] = schema_encoding
+
+        pagerange.array[INDIRECTION_COLUMN][new_page_idx][new_byte_offset : new_byte_offset + 4] = current_page_idx.to_bytes(4, 'big')
+        pagerange.array[INDIRECTION_COLUMN][new_page_idx][new_byte_offset + 4 : new_byte_offset + 8] = current_byte_offset.to_bytes(4, 'big')
+
+        # set indirection column and schema encoding values for BASE PAGE
+        pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset : base_offset + 4] = new_page_idx.to_bytes(4, 'big')
+        pagerange.array[INDIRECTION_COLUMN][base_page_idx][base_offset + 4 : base_offset + 8] = new_byte_offset.to_bytes(4, 'big')
+        pagerange.array[SCHEMA_ENCODING_COLUMN][base_page_idx][base_offset : base_offset + 8] = base_schema_encoding
+
+        pagerange.page_to_num_records[new_page_idx] += 1
+
+        return True
+
+
+    def latest_by_rid(self, rid):
+
+        pass
