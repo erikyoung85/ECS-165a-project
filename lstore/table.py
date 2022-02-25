@@ -39,7 +39,10 @@ class Table:
         self.basepage(pagerange_idx=0)
         self.db = None
         self.thread = threading.Timer(30, self.__merge())
+        
+        self.thread.setDaemon(True)
         self.thread.start()
+        
         # keep track of total records to create the next rid
         self.rid_counter = 1
 
