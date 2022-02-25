@@ -38,7 +38,7 @@ class Database():
                 with open(info[3]) as f:
                     data = f.read()
                 table.page_directory = json.loads(data)
-                
+                table.pagerange = []
                 #load all pages to table [4] num_pageranges
                 for j in range(int(info[4])):
                     path_pagerange = self.read.readline().strip()
@@ -60,7 +60,6 @@ class Database():
                         pagerange.array.append(array)
                     binary_file.close()
                     table.pagerange.append(pagerange)
-                
                 self.tables.append(table)
                 
     def pagerange_in_bufferpool(self, pagerange): 
