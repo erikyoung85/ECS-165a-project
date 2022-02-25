@@ -75,13 +75,13 @@ class Index:
         self.indices[column].updateKey(str(key), str(newKey))
         
     def all_index(self):
-        for i in len(self.table.pagerange):
+        for i in range(len(self.table.pagerange)):
             #Check if the page has merged: if yes/true, no need to care about it.
             if (True):
                 pagerange = self.table.pagerange[i]
                 for base_page_idxs in pagerange.base_page_idxs:
                     for offset in range(0, 4096, 8):
-                        rid = int.from_bytes(pagerange.array[1][base_page_idxs][offset : offset + 8])
+                        rid = int.from_bytes(pagerange.array[1][base_page_idxs][offset : offset + 8], 'big')
                         if (rid == -1 or rid == 0):
                             continue
                         

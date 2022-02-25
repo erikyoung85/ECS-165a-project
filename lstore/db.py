@@ -46,7 +46,9 @@ class Database():
                 4: num_pageranges
                 """
                 #load main attributes to table
+                
                 table = Table(info[0], int(info[1]), int(info[2]))
+                table.db = self
                 with open(info[3]) as f:
                     data = f.read()
                 table.page_directory = json.loads(data, object_pairs_hook=int_keys)
@@ -73,6 +75,7 @@ class Database():
                         pagerange.array.append(array)
                     binary_file.close()
                     table.pagerange.append(pagerange)
+                    table.index.all_index()
                 self.tables.append(table)
                 
     def pagerange_in_bufferpool(self, pagerange): 
