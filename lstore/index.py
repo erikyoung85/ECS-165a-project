@@ -52,7 +52,7 @@ class Index:
     """
 
 
-    def create_index(self, column_number, key, RID):
+    def create_leaf(self, column_number, key, RID):
         self.indices[column_number].insert(str(key), [str(key), RID])
         #if RID <= 2:
             #print(str(key))
@@ -64,7 +64,7 @@ class Index:
     """
     
     #Deletes index from B+Tree
-    def drop_index(self, column_number, key):
+    def drop_leaf(self, column_number, key):
         RIDtoDelete = self.locate(column_number, str(key))
         self.indices[column_number].reserveRID(str(key))
         return RIDtoDelete
@@ -72,11 +72,13 @@ class Index:
     
     # Creates a B+Tree in self.indices for a specified column
     def create_tree(self, column_number):
+        if self.indices[column_number] != None:
+            self.delete_tree(column_number)
         self.indices[column_number] = bPlusTree(20)
     
     # Deletes a B+Tree in self.indices for a specified column
     def delete_tree(self, column_number):
-        #del self.indices[column_number]
+        del self.indices[column_number]
         self.indices[column_number] = None
         
 
