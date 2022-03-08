@@ -1,6 +1,7 @@
 from lstore.table import Table, Record
 from lstore.index import Index
-from collections import deque
+from lstore.query import Query
+from queue import LifoQueue
 
 class Transaction:
 
@@ -9,7 +10,9 @@ class Transaction:
     """
     def __init__(self):
         self.queries = []
-        self.queryStack = deque()
+        self.queryStack = LifoQueue()
+        self.originalStack = LifoQueue()
+        self.tableName = None
         pass
 
     """
@@ -19,29 +22,72 @@ class Transaction:
     # t = Transaction()
     # t.add_query(q.update, grades_table, 0, *[None, 1, None, 2, None])
     """
-    def add_query(self, table, query, *args):
+    def add_query(self, query, table, *args):
         self.queries.append((query, args))
+        if self.tableName == None:
+            self.tableName = table
         # use grades_table for aborting
 
     # If you choose to implement this differently this method must still return True if transaction commits or False on abort
     def run(self):
+        #print("query ran")
         for query, args in self.queries:
+            # This segment saves original values if it encounters an update operation and finds existing records
+            if len(args) == 2:
+                saveOrignal = Query(self.tableName).currentValues(args[0])
+                if len(saveOrignal) != 0:
+                    self.originalStack.put(saveOrignal)
+
+            # Runs the operation
             result = query(*args)
-            # If the query has failed the transaction should abort
+            
+            # If op fails, it aborts
             if result == False:
                 return self.abort()
-            self.queryStack.append((query, args))
+            
+            # Stack for aborting is appended if needed
+            self.queryStack.put((query, args))
+            #print("stack appended")
+
         return self.commit()
 
     def abort(self):
         #TODO: do roll-back and any other necessary operations
-        # Notes for update and delete: if this operation is popped, the next pop will be a select operation. this can be used to find the key
-        revQuery = self.queryStack.pop()
-        #if revQuery == q.update:
-            #selQuery = self.queryStack.pop()
+        
+        #print("aborting")
+        
+        #If stack of ops that went through is not empty, reverse the damage
+        while self.queryStack.empty() == False:
+            #print("in loop")
+            revQuery = self.queryStack.get()
+            print(self.queryStack.qsize())
+
+            # This skips select ops
+            if len(revQuery[1]) == 3:
+                continue
+
+            # This undos insert with a delete
+            if len(revQuery[1]) == 5:    
+                Query(self.tableName).delete(revQuery[1][0])
+                #print("successful insert abort")
+                continue
+
+            # This undos update with an update of the original values
+            if len(revQuery[1]) == 2:    
+                Query(self.tableName).update(revQuery[1][0], self.originalStack.get())
+                #print("successful update abort")
+
+        while not self.originalStack.empty():
+            self.originalStack.get() 
         return False
 
     def commit(self):
         # TODO: commit to database
-        return True
+        #print("query committed")
 
+        # Emptying out the stacks
+        while not self.queryStack.empty():
+            self.queryStack.get()
+        while not self.originalStack.empty():
+            self.originalStack.get()
+        return True
