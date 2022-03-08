@@ -29,8 +29,8 @@ class Query:
     """
     def delete(self, primary_key):
         #Deleting Index of primary key
-        #self.table.index.drop_index(self.table.key, primary_key) 
-        rids = self.table.index.drop_index(self.table.key, primary_key)
+        #self.table.index.drop_leaf(self.table.key, primary_key) 
+        rids = self.table.index.drop_leaf(self.table.key, primary_key)
 
         for rid in rids:
             # if record doesnt exist or has already been deleted
@@ -52,7 +52,7 @@ class Query:
                     continue
                 col_idx = i + 4
                 value_bytes = pagerange.array[col_idx][current_page_idx][current_byte_offset : current_byte_offset + 8]
-                self.table.index.drop_index(i, str((int.from_bytes(value_bytes, 'big'))))
+                self.table.index.drop_leaf(i, str((int.from_bytes(value_bytes, 'big'))))
 
             self.table.page_directory[rid] = -1
 
@@ -82,7 +82,7 @@ class Query:
         self.table.rid_counter += 1
 
         # This inserts the an index for the record into the b+tree.
-        # self.table.index.create_index(self.table.key, primary_key, rid)
+        # self.table.index.create_leaf(self.table.key, primary_key, rid)
         # if self.table.rid_counter <= 2:
         #     print(self.table.key)
         #     print(primary_key)
@@ -90,7 +90,7 @@ class Query:
         #     print(" ")
         #  
         for i in range(len(columns)):
-            self.table.index.create_index(i, columns[i], rid)
+            self.table.index.create_leaf(i, columns[i], rid)
 
         # get page we are working with
         pagerange_idx = len(self.table.pagerange) - 1
