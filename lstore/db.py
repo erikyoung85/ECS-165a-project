@@ -97,8 +97,8 @@ class Database():
             info = table.name + " " + str(table.num_columns) + " " + str(table.key) + " " + page_directory_path + " " + str(len(table.pagerange)) + "\n"
             f.write(info)
             
-            for i in table.pagerange:
-                f.write(i.path+"\n")
+            for j in table.pagerange:
+                f.write(j.path+"\n")
                 
         for i in self.bufferpool:
             self.write_pagerange(i)
