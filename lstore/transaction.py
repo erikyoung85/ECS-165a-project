@@ -38,15 +38,23 @@ class Transaction:
                 if len(saveOrignal) != 0:
                     self.originalStack.put(saveOrignal)
 
+            # This segment gets original RID to be put into stack (not for insert)
+            if len(args) != 5:
+                originalRID = Query(self.tableName).returnRID(args[0])
+
             # Runs the operation
             result = query(*args)
+
+            # This segment gets original RID to be put into stack (for insert)
+            if len(args) == 5:
+                originalRID = Query(self.tableName).returnRID(args[0])
             
             # If op fails, it aborts
             if result == False:
                 return self.abort()
             
             # Stack for aborting is appended if needed
-            self.queryStack.put((query, args))
+            self.queryStack.put((query, args, originalRID))
             #print("stack appended")
 
         return self.commit()
@@ -69,13 +77,13 @@ class Transaction:
             # This undos insert with a delete
             if len(revQuery[1]) == 5:    
                 Query(self.tableName).delete(revQuery[1][0])
-                #print("successful insert abort")
+                print("successful insert abort")
                 continue
 
             # This undos update with an update of the original values
             if len(revQuery[1]) == 2:    
                 Query(self.tableName).update(revQuery[1][0], self.originalStack.get())
-                #print("successful update abort")
+                print("successful update abort")
 
         while not self.originalStack.empty():
             self.originalStack.get() 
