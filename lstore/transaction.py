@@ -35,11 +35,11 @@ class Transaction:
             # This segment saves original values if it encounters an update operation and finds existing records
             if len(args) == 2:
                 saveOrignal = Query(self.tableName).currentValues(args[0])
-                if len(saveOrignal) != 0:
+                if not len(saveOrignal) == 0:
                     self.originalStack.put(saveOrignal)
 
             # This segment gets original RID to be put into stack (not for insert)
-            if len(args) != 5:
+            if not len(args) == 5:
                 originalRID = Query(self.tableName).returnRID(args[0])
 
             # Runs the operation
