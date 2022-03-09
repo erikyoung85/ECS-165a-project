@@ -3,6 +3,7 @@ from lstore.index import Index
 from lstore.page import Page
 from datetime import datetime
 import threading
+from threading import Thread, Lock, RLock
 
 INDIRECTION_COLUMN = 0
 RID_COLUMN = 1
@@ -37,6 +38,17 @@ class Query:
             if rid == -1 or rid not in self.table.page_directory:
                 return False
             
+            if (self.table.lock[rid] == None):
+                self.table.lock[rid] = Lock()
+                self.table.lock[rid].acquire()
+            elif (isinstance(self.table.lock[rid], type(RLock()))):
+                return False
+            else:
+                try:
+                    self.table.lock[rid].release()
+                except:
+                    return False
+                 
             (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[rid]
 
             #Deleting Index of all columns of record after primary key
@@ -55,7 +67,7 @@ class Query:
                 self.table.index.drop_leaf(i, str((int.from_bytes(value_bytes, 'big'))))
 
             self.table.page_directory[rid] = -1
-
+            
             # mark record as deleted
             self.table.pagerange[pagerange_idx].page_to_num_records[base_page_idx] -= 1
         
@@ -68,7 +80,7 @@ class Query:
     def insert(self, *columns):
         schema_encoding = int(0).to_bytes(8, 'big')
         
-        if len(columns) != self.table.num_columns:
+        if not len(columns) == self.table.num_columns:
             return False
 
         # check if primary key already exists
@@ -119,6 +131,7 @@ class Query:
 
         
         self.table.page_directory[rid] = (pagerange_idx, use_page_idx, byte_offset)
+        self.table.lock[rid] = None
         indirection_value = (use_page_idx, byte_offset)
         pagerange.page_to_num_records[use_page_idx] += 1
 
@@ -159,6 +172,13 @@ class Query:
             if rid == -1 or rid not in self.table.page_directory:
                 continue
                 
+            if (self.table.lock[rid] == None):
+                self.table.lock[rid] = RLock()
+                self.table.lock[rid].acquire()
+            elif (isinstance(self.table.lock[rid], type(RLock()))):
+                self.table.lock[rid].acquire()
+            else:
+                return False
                 
             # get initial version of the record
             # (pagerange_idx, page_idx, offset) = self.table.page_directory[rid]
@@ -202,7 +222,17 @@ class Query:
         # if rid doesn't exist or is deleted
         if rid == -1 or rid not in self.table.page_directory:
             return False
-
+        if (self.table.lock[rid] == None):
+                self.table.lock[rid] = Lock()
+                self.table.lock[rid].acquire()
+        elif (isinstance(self.table.lock[rid], type(RLock()))):
+            return False
+        else:
+            try:
+                self.table.lock[rid].release()
+            except:
+                return False
+                
         if self.table._update_record(rid, columns):
             self.num_updates += 1
             if self.num_updates >= 5000:
@@ -236,7 +266,14 @@ class Query:
             # make sure record hasnt been deleted
             if rid == -1 or rid not in self.table.page_directory:
                 continue
-
+            if (self.table.lock[rid] == None):
+                self.table.lock[rid] = RLock()
+                self.table.lock[rid].acquire()
+            elif (isinstance(self.table.lock[rid], type(RLock()))):
+                self.table.lock[rid].acquire()
+            else:
+                return False
+                        
             (pagerange_idx, base_page_idx, base_offset) = self.table.page_directory[rid]
             pagerange = self.table.pagerange[pagerange_idx]
             pagerange = self.table.pagerange[pagerange_idx]

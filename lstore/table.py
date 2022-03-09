@@ -31,6 +31,7 @@ class Table:
         self.key = key
         self.num_columns = num_columns
         self.page_directory = {}
+        self.lock = {}
         self.index = Index(self)
         # self.page = Page()
         page = Page()
@@ -41,6 +42,7 @@ class Table:
         self.db = None
         # keep track of total records to create the next rid
         self.rid_counter = 1
+        
 
 
 # this function creates one page per column when the table is first created
