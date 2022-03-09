@@ -72,7 +72,7 @@ class Index:
     
     # Creates a B+Tree in self.indices for a specified column
     def create_index(self, column_number):
-        if self.indices[column_number] != None:
+        if not self.indices[column_number] == None:
             self.delete_index(column_number)
         self.indices[column_number] = bPlusTree(20)
     
