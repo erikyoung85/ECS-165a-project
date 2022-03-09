@@ -18,7 +18,7 @@ query = Query(grades_table)
 # dictionary for records to test the database: test directory
 records = {}
 
-number_of_records = 10000
+number_of_records = 1000
 number_of_aggregates = 100
 seed(3562901)
 
@@ -33,7 +33,6 @@ for i in range(0, number_of_records):
     query.insert(*records[key])
     # print('inserted', records[key])
 print("Insert finished")
-print("number of page ranges: ", len(query.table.pagerange))
 
 # Check inserted records using select query
 for key in records:
@@ -45,11 +44,10 @@ for key in records:
         if column != records[key][i]:
             error = True
     if error:
-        print('select error on', key, ':', record.columns, ', correct:', records[key])
+        print('select error on', key, ':', record, ', correct:', records[key])
     else:
         pass
         # print('select on', key, ':', record)
-print("Select finished")
 
 for key in records:
     updated_columns = [None, None, None, None, None]
@@ -68,14 +66,11 @@ for key in records:
             if column != records[key][j]:
                 error = True
         if error:
-            print('update error on', original, 'and', updated_columns, ':', record.columns, ', correct:', records[key])
-            # pass
+            print('update error on', original, 'and', updated_columns, ':', record, ', correct:', records[key])
         else:
             pass
             # print('update on', original, 'and', updated_columns, ':', record)
         updated_columns[i] = None
-print("Update finished")
-print("number of page ranges: ", len(query.table.pagerange))
 
 keys = sorted(list(records.keys()))
 # aggregate on every column 
@@ -87,9 +82,6 @@ for c in range(0, grades_table.num_columns):
         result = query.sum(keys[r[0]], keys[r[1]], c)
         if column_sum != result:
             print('sum error on [', keys[r[0]], ',', keys[r[1]], ']: ', result, ', correct: ', column_sum)
-            pass
         else:
             pass
             # print('sum on [', keys[r[0]], ',', keys[r[1]], ']: ', column_sum)
-print("Sum finished")
-pass
