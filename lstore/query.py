@@ -22,6 +22,26 @@ class Query:
         self.num_updates = 0
         pass
 
+    
+    
+    
+    # Only for use with the transaction class for now. Retrieves the current column values of a record
+    def currentValues(self, primary_key):    
+        rids = self.table.index.locate(self.table.key, primary_key)
+        for rid in rids:
+            # if record doesnt exist or has already been deleted
+            if rid == -1 or rid not in self.table.page_directory:
+                return []
+            column_values = self.table.latest_by_rid(rid)
+            return column_values
+
+        # Only for use with the transaction class for now. Retrieves the rid of a record that is affected by transaction
+    def returnRID(self, primary_key):
+        rid = self.table.index.locate(self.table.key, primary_key)
+        return rid
+    
+    
+    
     """
     # internal Method
     # Read a record with specified RID
