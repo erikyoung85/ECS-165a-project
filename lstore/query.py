@@ -33,6 +33,11 @@ class Query:
                 return []
             column_values = self.table.latest_by_rid(rid)
             return column_values
+        
+        # Only for use with the transaction class for now. Retrieves the rid of a record that is affected by transaction
+    def returnRID(self, primary_key):
+        rid = self.table.index.locate(self.table.key, primary_key)
+        return rid        
     
     
     """
