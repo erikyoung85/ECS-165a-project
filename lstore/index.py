@@ -1,4 +1,4 @@
-from lstore.bPlusTree import bPlusTree, Node
+
 
 
 """
@@ -17,7 +17,7 @@ class Index:
         #print (self.indices)
         #self.indices = bPlusTree(10)
         for i in range(self.table.num_columns):
-            self.indices.append(bPlusTree(20))
+            self.indices.append({})
 
     """
     # returns the location of all records with the given value on column "column"
@@ -26,12 +26,7 @@ class Index:
 
     def locate(self, column, value):
         RIDs = []
-        correctRID = None
-        RIDsList = self.indices[column].searchRID(str(value))
-        for i in range(len(RIDsList)):
-            if str(value) == RIDsList[i][0][0]:
-                correctRID = RIDsList[i][0][1]
-                break
+        correctRID = self.indices[column].get(str(value))
         RIDs.append(correctRID)
         #print(type(correctRID))
         #print(value)
@@ -43,8 +38,13 @@ class Index:
     """
 
     def locate_range(self, column, begin, end):
-        #print(column)
-        return self.indices[column].searchRange(begin, end)
+        RIDs = []
+        for i in range (begin, end+1):
+            searchedRID = self.indices[column].get(str(i))
+            if searchedRID == None:
+                continue
+            RIDs.append(searchedRID)
+        return RIDs
 
     """
     # optional: Create index on specific column
@@ -53,7 +53,7 @@ class Index:
 
 
     def create_leaf(self, column_number, key, RID):
-        self.indices[column_number].insert(str(key), [str(key), RID])
+        self.indices[column_number].update({str(key): RID})
         #if RID <= 2:
             #print(str(key))
             #print([str(key), RID])
@@ -65,16 +65,18 @@ class Index:
     
     #Deletes index from B+Tree
     def drop_leaf(self, column_number, key):
-        RIDtoDelete = self.locate(column_number, str(key))
-        self.indices[column_number].reserveRID(str(key))
-        return RIDtoDelete
+        exists = self.indices[column_number].get(key)
+        if exists == None:
+            return [-1]
+        self.indices[column_number].update({str(key):-1})
+        return [exists]
 
     
     # Creates a B+Tree in self.indices for a specified column
     def create_index(self, column_number):
         if not self.indices[column_number] == None:
             self.delete_index(column_number)
-        self.indices[column_number] = bPlusTree(20)
+        self.indices[column_number] = {}
     
     # Deletes a B+Tree in self.indices for a specified column
     def delete_index(self, column_number):
@@ -84,7 +86,11 @@ class Index:
 
     #Updating index
     def update_index(self, column, key, newKey):
-        self.indices[column].updateKey(str(key), str(newKey))
+        RID = self.indices[column].pop(str(key), None)
+        if RID == None:
+            return
+        self.indices[column].update({str(newKey):RID})
+
         
     def all_index(self):
         for i in range(len(self.table.pagerange)):
@@ -107,5 +113,5 @@ class Index:
                             # get indirection value
                             value_bytes = pagerange.array[col_idx][page_idx_latest][byte_offset_latest : byte_offset_latest + 8]
                             key = int.from_bytes(value_bytes, 'big')
-                            self.indices[indice].insert(str(key), [str(key), rid])
+                            self.indices[indice].update({str(key):rid})
         
